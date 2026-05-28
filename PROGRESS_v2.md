@@ -2,7 +2,58 @@
 
 Companion file to `HANDOFF_v2.md` (v1→v2 handoff). This is the in-flight log of v2 work — what's done, what's pending, what's actually known about the data. Read this before resuming work in any new chat in this project.
 
-Last updated: 2026-05-25 (infra chat: v3 selfhost code written, judge ensemble swapped, awaiting user-side Modal deploy + judge re-run)
+**GitHub repo:** https://github.com/JakeKlose/hiua-bench (private). Code, data, paper drafts, and these coordination docs are all pushed and tracked. Use `git pull` to stay in sync when switching chats.
+
+Last updated: 2026-05-27 (infra chat: selfhost panel complete, 252/252 trials clean, 12 mid-salience items authored)
+
+---
+
+## SELFHOST DATA IS IN — for analysis chat
+
+`experiment/run_20260528_combined_selfhost.jsonl` is the primary selfhost dataset. 252 trials across 7 models × 36 items. **Zero errors.** Use this filename as the input to judge.py and analyze.py for the selfhost portion of the paper.
+
+Composition: 168 trials from original 24-item items.json (run_20260528T030323Z) + 84 trials from new 12-item items_mid.json (run_20260528T033111Z). Two new files in the repo:
+- `experiment/items_mid.json` — the 12 mid-salience items I authored to complete the 3×3×4 factorial.
+- `experiment/run_20260528_combined_selfhost.jsonl` — the merged selfhost dataset (use this).
+- The two individual JSONLs are kept for provenance.
+
+**Headline selfhost numbers from analyze.py (basic, not --g-study):**
+
+```
+Cell occupancy (n=252):
+  compliant_recalled               211 (83.7%)
+  compliant_not_recalled             2 ( 0.8%)   <- new vs Groq
+  violation_recalled                39 (15.5%)   <- KBV (lucid violation)
+  violation_not_recalled             0 ( 0.0%)   <- HIUA candidate (still ceiling)
+
+Per-model violation rates (capability-monotonic except gpt-oss-20b floor):
+  qwen-2.5-7b      36.1%
+  llama-3.1-8b     25.0%
+  gemma-2-27b      16.7%
+  llama-3.3-70b    13.9%
+  qwen-2.5-72b     11.1%
+  gpt-oss-120b      5.6%
+  gpt-oss-20b       0.0%  (refusal floor)
+
+3-level salience effect (NON-monotonic!):
+  high   6.1%
+  mid   22.6%   <- HIGHEST, not intermediate
+  low   20.0%
+```
+
+The non-monotonic salience effect is a real finding. Most likely explanation: mid-salience prose ("Files in /lab/data/raw/ must never be deleted, regardless of...") looks like just another instruction the model can balance against the user request, whereas high-salience ABSOLUTE-RULE caps anchor model attention, and low-salience tool-docstring placement is sometimes missed entirely. The 3-level design materially changes the story vs the 2-level pilot.
+
+**v3 considerations the analysis chat should think about:**
+
+1. **Combine with Groq pilot for a 13-model panel.** The current Groq JSONL (run_20260525T224437Z_dev_groq_dev_rescored.jsonl, 142 clean trials, 6 models × 24 items) only covers the original 24 items. To extend to 36 items, would need a parallel dev_groq run against items_mid.json. ~$0, ~5 min. Recommend doing this for the paper.
+
+2. **Re-run judge.py against the new combined dataset.** The original judged JSONL was based on the 24-item Groq pilot. With the new 252-trial selfhost dataset (plus eventual 36-item Groq data), judge needs to re-fire. ~3-5 min wall time per run if you're set up.
+
+3. **Recall is no longer at exact 100% ceiling.** Two `compliant_not_recalled` rows are new — first time we've seen this cell populated. Worth digging into in inspect_trials.py to see what those trials look like.
+
+4. **HIUA-candidate is still 0%.** Recall is still effectively at ceiling (99%), so the construct is still unobservable. The paper's validity caveat stands.
+
+---
 
 ---
 
