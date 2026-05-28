@@ -1,0 +1,33 @@
+{
+  "eval_id": 4,
+  "condition": "without_skill",
+  "expectations": [
+    {
+      "text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app",
+      "passed": true,
+      "evidence": "matched 'local.{0,30}disconnect'"
+    },
+    {
+      "text": "Primary fix: re-launch with modal run --detach",
+      "passed": true,
+      "evidence": "--detach recommended"
+    },
+    {
+      "text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)",
+      "passed": true,
+      "evidence": "progress tracking explained"
+    },
+    {
+      "text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get",
+      "passed": true,
+      "evidence": "volume recovery explained"
+    },
+    {
+      "text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)",
+      "passed": true,
+      "evidence": "per-trial flush pattern mentioned"
+    }
+  ],
+  "pass_count": 5,
+  "total": 5
+}

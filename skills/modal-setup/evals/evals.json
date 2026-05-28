@@ -1,0 +1,33 @@
+{
+  "skill_name": "modal-setup",
+  "evals": [
+    {
+      "id": 1,
+      "name": "first-time-llama-host",
+      "prompt": "I want to run Llama 3.1 8B Instruct on a cloud GPU so I can call it from a Python script on my laptop and not pay $500 for an OpenAI subscription. A friend told me to use Modal. I've never used Modal before. Can you walk me through what I need to install, set up, and write to get a single inference call working end-to-end? I'm comfortable with Python and bash but I haven't touched HuggingFace tokens or GPU stuff before. Give me the actual commands and code I'd type.",
+      "expected_output": "Step-by-step walkthrough: pip install modal + modal token new; HF token setup including license acceptance for gated Llama models; create hf-token Modal secret; write a vllm-on-Modal Python file with weight downloader + serving class; run download_weights then smoke_test; correct version pins (vllm + transformers upper bound) and Modal v1 decorator names baked into the code.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "debug-secret-not-found",
+      "prompt": "My Modal run keeps failing immediately with `Stopping app - uncaught exception raised locally: NotFoundError(\"Secret 'anthropic-api-key' not found in environment 'main'\")`. But I'm not even using Claude in this run — I'm just trying to call OpenAI for one trial. Why is Modal complaining about Anthropic, and how do I fix it? Here's the top of my modal_app.py:\n\n```python\nSECRETS = [\n    modal.Secret.from_name(\"openai-api-key\"),\n    modal.Secret.from_name(\"anthropic-api-key\"),\n    modal.Secret.from_name(\"google-api-key\"),\n]\napp = modal.App(\"my-app\", secrets=SECRETS)\n```\n\nWhat should I change?",
+      "expected_output": "Explanation that Modal validates ALL listed secrets at app-build time even if no function uses them, so missing-but-listed secrets crash the run. Concrete fix: comment out the unused secret lines (or create placeholder secrets). Bonus if it mentions --force for re-creating an existing secret.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "vllm-dependency-conflict",
+      "prompt": "I'm trying to host Qwen 2.5 7B on Modal with vLLM. The smoke test fails with this error: `AttributeError: Qwen2Tokenizer has no attribute all_special_tokens_extended`. The vLLM init crashes during tokenizer loading. My image is built with:\n\n```python\nvllm_image = modal.Image.from_registry(\"nvidia/cuda:12.4.0-devel-ubuntu22.04\", add_python=\"3.11\").pip_install(\"vllm==0.8.5\", \"huggingface_hub\")\n```\n\nWhat's wrong and how do I fix it?",
+      "expected_output": "Diagnosis: vLLM 0.8.5 requires transformers>=4.51.1 but pip will resolve to transformers 5.x which removed the tokenizer method vLLM still calls. Fix: add upper bound on transformers in the pip_install call: `transformers>=4.51.1,<4.56`. Bonus if it explains WHY this happens (open upper bounds in vllm's setup.py + major version bumps in transformers) so the user can solve future variants.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "long-run-killed-by-sleep",
+      "prompt": "Ugh. I started a Modal experiment that was supposed to take 3 hours. I kicked it off with `modal run modal_app.py::full_run --confirm yes` and then closed my laptop and went to dinner. When I came back, the run had died after about 40 minutes with a bunch of errors about 'local client disconnected' and 'App state is APP_STATE_STOPPED'. I lost all the trials it had completed (or so I think). How do I make sure this doesn't happen again? And is there a way to recover the partial results that already ran?",
+      "expected_output": "Diagnosis: Modal interprets local CLI disconnect as a cancel signal and stops the workers. Fix: re-launch with `modal run --detach` which makes Modal keep running regardless of local connection. Bonus: explain how to track progress via Modal dashboard URL or `modal app logs <app-id>`, and (for recovery) that anything written to a volume + committed is durable, so partial results can be pulled with `modal volume ls/get` even after a kill — but only if the orchestrator flushed per-trial rather than buffering.",
+      "files": []
+    }
+  ]
+}

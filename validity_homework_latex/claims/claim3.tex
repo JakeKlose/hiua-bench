@@ -1,0 +1,54 @@
+\section{Claim \#3}
+
+\paragraph{Claim Statement} ``Med-PaLM 2 reaches expert-level performance on US medical licensing examination questions'' \citep{singhal2023medpalm2,singhal2025nature}.
+
+\paragraph{Construct Identification} The headline claim invokes ``expert-level performance''---a construct standing in for clinical reasoning competence---while the criterion measured is accuracy on USMLE-style multiple-choice items (specifically MedQA). The AI Construct Lexis \citep{aiconstructlexis} treats medical reasoning as a multi-component construct including differential diagnosis, uncertainty calibration, and patient-history integration; MCQ accuracy operationalizes only a sliver of it.
+
+\subsection{Content Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} USMLE-style MCQs sample factual recall, recognition of textbook presentations, and elimination among five distractors. The implied construct of ``medical expertise'' encompasses additional cognitive operations the items do not exercise: differential diagnosis under uncertainty, integration of patient history, longitudinal reasoning, and shared decision-making. Coverage of the construct domain is therefore weak---the items sample one narrow, format-dependent slice and leave several others entirely unprobed. Whether performance on the items \emph{reflects} the construct or a confound is a separate question handled under construct validity \citep{alaa2025medical,salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Construct Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} \textbf{[Selected as the most relevant dimension for this claim.]} \emph{Discriminant validity} is the issue, and the relevant test has been run. \citet{alaa2025medical} document that medical-LLM benchmark gains do not transfer to open-ended diagnostic vignettes on real patient records---the canonical signature that the test is measuring something other than the named construct. \emph{Convergent validity} is also weak: physician-rating studies \citep{singhal2025nature} use curated questions, not naturalistic clinical workflows where MCQ skill and clinical reasoning diverge. \emph{Structural validity}: medical expertise is decomposable into hypothesis generation, uncertainty calibration, and procedural knowledge, but MCQ accuracy collapses these into a single number. The measurement instrument and the implied criterion are proxies for different sub-constructs of medical reasoning, and the nomological mapping between MCQ skill and clinical skill is empirically broken \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Criterion / Predictive Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} The cited evidence does not supply predictive criterion evidence: no prospective study in the provided materials links Med-PaLM 2 deployment to downstream patient outcomes (time-to-diagnosis, misdiagnosis rates, adverse events). Concurrent criterion evidence is partial: the Nature Medicine pairwise-preference study \citep{singhal2025nature} shows physicians prefer Med-PaLM 2 answers on most utility dimensions for curated open-ended questions, though the same paper notes ``inaccurate or irrelevant information'' in some answers as a reliability caveat on the concurrent finding. The criterion evidence available therefore supports a narrow concurrent claim against curated questions, not the predictive deployment use cases the ``expert-level'' framing invites \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Consequential Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} The ``expert-level'' framing is the kind of language that drives deployment decisions: triage automation, reduction of physician oversight, patient-facing chatbots. Misalignment between MCQ competence and clinical competence creates patient-safety risk---adverse outcomes, misdiagnoses, and inappropriate trust transfer. Consequential validity is weak because the construct overreach in the marketing form maps directly onto foreseeable harm scenarios, and the empirical evidence does not constrain the deployments the claim's wording enables \citep{salaudeen2025measurement,alaa2025medical}.
+\end{itemize}
+
+\subsection{External validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} USMLE is US-specific, English-language, weighted toward textbook presentations of common conditions. No transfer evidence for non-US licensing contexts, non-English clinical settings, or rare-disease workflows. The ``expert'' reference class is implicitly the average US-licensed physician, not specialists or community-clinic practitioners. Generalization across patient populations, languages, and care settings---the contexts in which any deployed system would actually operate---is unstudied \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Overall Validity Judgment}
+\begin{itemize}
+    \item \textbf{Rating:} Not Valid
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} ``Expert-level performance'' is a construct claim that the supporting MCQ evidence simply cannot support, especially given direct empirical evidence of failed transfer to open-ended clinical reasoning \citep{alaa2025medical}. The Nature Medicine preference work is real and meaningful, but it is purely concurrent on curated questions rather than the implied predictive criterion of unconstrained physician-level practice. By conflating multiple-choice accuracy with holistic diagnostic competence, the claim invites hospital administrators to deploy the system in triage or patient-facing roles where reasoning gaps will directly harm patients. We must structurally separate test-taking ability from clinical workflow competence. \emph{Defensible reformulation}: ``Med-PaLM 2 achieves high accuracy on USMLE-style multiple-choice questions in the MedQA benchmark and produces written answers preferred by physicians on curated medical questions. Performance does not transfer to open-ended diagnostic reasoning on real patient records, so claims of expert-level clinical competence are not supported by current evidence.''
+    \item \textbf{Peer Prediction (BTS):}
+
+    \begin{tabular}{ll}
+        Valid as stated: & 10\% \\
+        Partially valid: & 50\% \\
+        Not valid: & 40\% \\
+        \end{tabular}\\[4pt]
+\end{itemize}

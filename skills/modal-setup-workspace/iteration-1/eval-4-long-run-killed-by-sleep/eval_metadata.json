@@ -1,0 +1,12 @@
+{
+  "eval_id": 4,
+  "eval_name": "long-run-killed-by-sleep",
+  "prompt": "I started a 3-hour Modal run with modal run, closed my laptop, came back and it had died with 'local client disconnected' errors. How do I prevent this and recover partial results?",
+  "assertions": [
+    {"text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app"},
+    {"text": "Primary fix: re-launch with modal run --detach"},
+    {"text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)"},
+    {"text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get"},
+    {"text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)"}
+  ]
+}

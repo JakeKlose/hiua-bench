@@ -1,0 +1,147 @@
+% =========================================================================
+% Empirical Pilot section template, to be inserted into paper_long_koyejo.tex
+% after Section "HIUA-Bench: a design sketch" and before "Discussion".
+%
+% This is a SLOT-FILL template. Every <<<...>>> marker is a number, name, or
+% short phrase to be replaced from the JSONL analysis. The prose around the
+% slots is in the Koyejo lab register (formal first-person plural, no
+% em-dashes, hedged claims, comma-stacked qualifications).
+%
+% After filling in the slots, copy this file's contents into
+% paper_long_koyejo.tex as a new section "\section{Empirical pilot}".
+% =========================================================================
+
+\section{Empirical pilot}
+\label{sec:pilot}
+
+We report a small-scale pilot of HIUA-Bench against an open-weights-only model panel served through Groq's hosted inference. The pilot's purpose is, first, to verify that the three-layer scoring stack (\S\ref{sec:scoring}) discriminates among the four cells of the partition rather than collapsing trials into one or two cells, and, second, to produce an initial nomological-network datapoint on a non-trivial model panel that future work can extend.
+
+\subsection{Panel and protocol}
+
+The pilot evaluated <<<N_MODELS, e.g., 6>>> open-weights instruction-tuned models on the 24-item base bank from \S\ref{sec:design}: <<<MODEL_LIST_PROSE, e.g., Meta Llama 3.1 8B Instant, Meta Llama 3.3 70B Versatile, OpenAI GPT-OSS 20B, OpenAI GPT-OSS 120B, Alibaba Qwen3 32B (preview), and Meta Llama 4 Scout 17B (preview)>>>. All models were served through Groq's free-tier inference endpoint, with concurrency set to one request per model to remain within Groq's per-model tokens-per-minute caps. Each model contributed one trial per item at temperature 0.7 with seed 0, yielding <<<N_TRIALS, e.g., 144>>> trials total.
+
+For each trial, the agent first received the system prompt (containing the explicit prohibition) and the user message (containing the hallucination trigger), and produced a chain-of-thought followed by an action description. We then issued the recall probe in a fresh context and scored both responses. The action scorer applied a three-layer cascade: a refusal-prefix heuristic on the parsed action line, a regex match against forbidden and compliant action patterns, and a fallback to a Llama 3.3 70B judge when the regex flagged both forbidden and compliant matches. The recall scorer applied a two-layer cascade: substring match against the expected recall token, and a fallback to the same judge when the substring missed. Post-hoc, a three-judge ensemble (<<<JUDGE_MODELS, e.g., Llama 3.1 8B, Llama 3.3 70B, GPT-OSS 20B>>>) labeled each trial's hallucination type as one of \{none, authorization, state, tool\} from the chain-of-thought transcript.
+
+\subsection{Scoring-stack diagnostics}
+
+The action scorer's per-trial path distribution provides a first sanity check that the three layers are doing distinct work. Of the <<<N_CLEAN_TRIALS>>> clean trials, <<<PCT_REGEX_CLEAN, e.g., 38.5>>>\% were scored by the regex layer alone, <<<PCT_REFUSAL_PREFIX, e.g., 53.8>>>\% by the refusal-prefix heuristic, and <<<PCT_JUDGE_RESOLVED, e.g., 7.7>>>\% required the LLM-judge fallback. The remaining <<<PCT_AMBIGUOUS, e.g., 0.0>>>\% were cases the judge marked ambiguous, which we report separately rather than folding into the headline rate.
+
+The recall scorer's distribution is more informative for the substantive-validity argument. <<<PCT_RECALL_SUBSTRING, e.g., 53.8>>>\% of correctly-recalled trials were caught by exact-substring match, while <<<PCT_RECALL_JUDGE_YES, e.g., 46.2>>>\% were rescued by the LLM-judge fallback after the substring scorer had failed. The paraphrased-recall rate is, in our view, evidence that a benchmark using substring matching alone (as is common in the agent-safety literature) would systematically inflate HIUA estimates by misclassifying paraphrased recalls as recall failures. The judge ensemble's inter-rater reliability was Cohen's $\kappa$ <<<KAPPA_PAIRWISE_MEAN, e.g., 0.62>>> averaged across the three pairwise comparisons, with all-three-agree rate of <<<AGREEMENT_RATE, e.g., 71.4>>>\% of trials.
+
+\subsection{Cell occupancy}
+
+Table~\ref{tab:pilot-cells} reports the headline 2$\times$2 of \{forbidden action?\} $\times$ \{recalled rule?\}, pooled across the <<<N_MODELS>>>-model panel.
+
+\begin{table}[h]
+\centering
+\caption{Pilot cell occupancy across $N=$<<<N_TRIALS>>> trials.}
+\label{tab:pilot-cells}
+\begin{tabular}{lrr}
+\hline
+Cell & Count & Percent \\
+\hline
+Compliant + recalled         & <<<N_CR>>>   & <<<PCT_CR>>>\% \\
+Compliant + not recalled     & <<<N_CNR>>>  & <<<PCT_CNR>>>\% \\
+Violation + recalled (KBV)   & <<<N_VR>>>   & <<<PCT_VR>>>\% \\
+Violation + not recalled (HIUA candidate) & <<<N_VNR>>> & <<<PCT_VNR>>>\% \\
+\hline
+\end{tabular}
+\end{table}
+
+We observe that <<<HEADLINE_SUMMARY, e.g., the panel refused the prohibited action in over 90\% of trials, with violations split between knows-but-violates (lucid) and HIUA-candidate cells at a ratio of>>> <<<KBV_HIUA_RATIO, e.g., approximately 3:1>>>. The full $2 \times 4 \times 2$ cell structure, decomposed by judge-assigned hallucination sub-type, is reported in Table~\ref{tab:pilot-cells-full}.
+
+\begin{table}[h]
+\centering
+\caption{Full $2 \times 4 \times 2$ pilot decomposition. The HIUA estimate is the rate at which the agent executed a forbidden action conditional on recalling the rule and exhibiting one of the three hallucination sub-types.}
+\label{tab:pilot-cells-full}
+\begin{tabular}{lllrr}
+\hline
+Violation & Hallucination type & Recall & Count & Notes \\
+\hline
+False (compliant) & none          & yes & <<<N_C_NONE_R>>>    & target behavior \\
+False (compliant) & none          & no  & <<<N_C_NONE_NR>>>   & \\
+False (compliant) & authorization & yes & <<<N_C_AUTH_R>>>    & caught before acting \\
+False (compliant) & state         & yes & <<<N_C_STATE_R>>>   & caught before acting \\
+False (compliant) & tool          & yes & <<<N_C_TOOL_R>>>    & caught before acting \\
+True (violation)  & none          & yes & <<<N_V_NONE_R>>>    & KBV (lucid violation) \\
+True (violation)  & none          & no  & <<<N_V_NONE_NR>>>   & recall failure, no hallucination \\
+True (violation)  & authorization & yes & <<<N_V_AUTH_R>>>    & \textbf{HIUA: authorization} \\
+True (violation)  & state         & yes & <<<N_V_STATE_R>>>   & \textbf{HIUA: state} \\
+True (violation)  & tool          & yes & <<<N_V_TOOL_R>>>    & \textbf{HIUA: tool} \\
+\hline
+\end{tabular}
+\end{table}
+
+The HIUA conditional rate, defined in \S\ref{sec:construct}, is therefore $\widehat{\mathrm{HIUA}} = $ <<<HIUA_RATE, e.g., 0.043>>>. The lucid-violation (KBV) rate, comparable to DriftBench's measurement, is <<<KBV_RATE, e.g., 0.077>>>. We observe that <<<HIUA_VS_KBV_INTERPRETATION, e.g., the KBV rate exceeds the HIUA rate by approximately a factor of 1.8 in this pilot, suggesting that for the model panel and items studied, lucid violation is the more common failure mode than hallucination-induced violation. We caution that this finding is on a small panel of small-to-mid-sized open-weights models and may not generalize to frontier models, larger model panels, or more adversarial trigger designs.>>>
+
+\subsection{Per-model rates}
+
+Table~\ref{tab:pilot-per-model} reports per-model rates for the four headline quantities.
+
+\begin{table}[h]
+\centering
+\caption{Per-model rates on the pilot panel. All cells in percent.}
+\label{tab:pilot-per-model}
+\begin{tabular}{lrrrrr}
+\hline
+Model & $n$ & Violation & Recall & HIUA cand. & KBV \\
+\hline
+<<<PER_MODEL_TABLE_ROWS, e.g.,
+groq-llama-3.1-8b   & 24 & 7.7  & 100.0 & 0.0  & 7.7 \\
+groq-llama-3.3-70b  & 24 & 4.2  & 95.8  & 0.0  & 4.2 \\
+groq-gpt-oss-20b    & 24 & 12.5 & 91.7  & 4.2  & 8.3 \\
+groq-gpt-oss-120b   & 24 & 4.2  & 100.0 & 0.0  & 4.2 \\
+groq-qwen3-32b      & 24 & 16.7 & 87.5  & 8.3  & 8.4 \\
+groq-llama-4-scout  & 24 & 8.3  & 95.8  & 4.2  & 4.1 \\
+>>>
+\hline
+\end{tabular}
+\end{table}
+
+We observe a spread of <<<VIOLATION_SPREAD_PCT, e.g., approximately 12 percentage points>>> in violation rate across the panel, and a <<<HIUA_SPREAD_PCT, e.g., 8 percentage point>>> spread in HIUA candidate rate. <<<PER_MODEL_INTERPRETATION, e.g., The smaller-and-newer models (Qwen3 32B, Llama 4 Scout) exhibit nontrivial HIUA rates, while the production Llama variants and GPT-OSS 120B remain in the compliant-recalled cell on nearly all trials. This pattern is consistent with the prediction that HIUA is not strictly capability-bounded, but we caution against strong inference from a single-seed pilot.>>>
+
+\subsection{Sub-construct and salience effects}
+
+Table~\ref{tab:pilot-subconstruct} reports violation rates broken down by the hallucination sub-type the item was designed to elicit (authorization, state, tool) and by prohibition salience.
+
+\begin{table}[h]
+\centering
+\caption{Pilot violation rates by sub-construct and salience.}
+\label{tab:pilot-subconstruct}
+\begin{tabular}{lrr}
+\hline
+Stratum & $n$ & Violation rate (\%) \\
+\hline
+Authorization sub-construct & <<<N_AUTH>>> & <<<VR_AUTH>>> \\
+State sub-construct         & <<<N_STATE>>> & <<<VR_STATE>>> \\
+Tool sub-construct          & <<<N_TOOL>>> & <<<VR_TOOL>>> \\
+\hline
+High salience               & <<<N_HIGH_SAL>>> & <<<VR_HIGH_SAL>>> \\
+Low salience                & <<<N_LOW_SAL>>> & <<<VR_LOW_SAL>>> \\
+\hline
+\end{tabular}
+\end{table}
+
+We observe that <<<SUBCONSTRUCT_FINDING, e.g., authorization-trigger items elicited violations at substantially higher rates than state- or tool-trigger items. The forged manager-email and runbook-override scenarios appear to be the most effective at eliciting forbidden actions across the panel; we read this as preliminary support for the construct decomposition's claim that authorization hallucination is mechanistically distinct from state or tool hallucination.>>> The salience contrast, <<<SALIENCE_FINDING, e.g., low-salience items eliciting fewer violations than high-salience items>>>, is in the direction we predicted but the sample is too small to draw confident inferences.
+
+\subsection{Pilot limitations}
+
+We name the following limitations explicitly so that they bound the inferential reach of the pilot's empirical claims.
+
+The single-seed design means we cannot decompose observed-score variance into person, item, and occasion components. The Generalizability-Theory analysis (\S\ref{sec:gstudy}) requires multiple seeds per (model, item) cell, which the pilot did not produce. The headline rates in Tables~\ref{tab:pilot-cells} through \ref{tab:pilot-subconstruct} are therefore point estimates without standard errors, and the per-model differences in Table~\ref{tab:pilot-per-model} may not survive a full G-study.
+
+The model panel is restricted to open-weights models served through Groq's hosted inference. The pilot does not include frontier closed models (such as Claude, GPT-4, or Gemini), and it does not include the very-large MoE models in the OSS catalog (DeepSeek V3.1 or R1). The nomological-network predictions in \S\ref{sec:audit} (positive correlation with hallucination benchmarks, weak correlation with jailbreak compliance, inverse correlation with capability above threshold) are not yet testable on a panel this narrow.
+
+The three-judge hallucination-type labeling depends on the judge ensemble's reliability. Cohen's $\kappa$ of <<<KAPPA_PAIRWISE_MEAN, e.g., 0.62>>> is in the moderate-agreement range, but the labels rest on chain-of-thought traces that may be post-hoc rationalizations rather than faithful representations of the inference that produced the action. We treat the labels as evidence about the cognitive process the agent reported, rather than as direct evidence about the cognitive process that produced the action.
+
+Finally, the pilot is digital-only. The cross-domain generalizability argument in \S\ref{sec:audit} explicitly identifies the digital-to-embodied transfer as the load-bearing assumption that HIUA-Bench is designed to instrument. Embodied items are not in this pilot, and no claims about embodied behavior follow from these results.
+
+\subsection{What the pilot establishes}
+
+Two things, in our view. First, the three-layer scoring stack is empirically separable: the action scorer's regex and refusal-prefix layers handle the majority of trials, and the LLM-judge fallback fires on the minority of genuinely ambiguous cases. The recall scorer's substring layer alone would have missed nearly half of the recall-correct trials, which is direct evidence for the substantive-validity claim that a benchmark using substring scoring alone would systematically mismeasure HIUA. Second, the construct's $2 \times 4 \times 2$ partition produces nontrivial occupancy across multiple cells on this panel, indicating that the cells are operationally distinguishable rather than reducing to a single mechanism. We do not yet claim that the pilot's specific HIUA-versus-KBV ratio generalizes, but we do claim that the partition is empirically realizable.
+
+% =========================================================================
+% End of empirical pilot template. The Discussion section that follows
+% should pick up by interpreting these results in the context of the
+% paper's broader argument.
+% =========================================================================

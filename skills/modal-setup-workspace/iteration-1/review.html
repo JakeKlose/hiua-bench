@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "modal-setup", "runs": [{"id": "eval-1-first-time-llama-host-with_skill", "prompt": "I want to run Llama 3.1 8B Instruct on a cloud GPU so I can call it from a Python script on my laptop and not pay $500 for an OpenAI subscription. A friend told me to use Modal. I've never used Modal before. Can you walk me through what I need to install, set up, and write to get a single inference call working end-to-end?", "eval_id": 1, "outputs": [{"name": "call_llama.py", "type": "text", "content": "\"\"\"\nCall the Modal-hosted Llama from a regular Python script on your laptop.\n\nRun this AFTER `modal run llama_app.py::smoke_test` has succeeded once.\n\n  python call_llama.py\n\nThis script does NOT use `modal run`. It uses `modal.Cls.from_name(...)` to\nget a handle to the already-deployed app from any Python process \u2014 so you\ncan drop this same pattern into a Jupyter notebook, a CLI tool, a Flask\nserver, whatever.\n\"\"\"\n\nimport modal\n\n# Look up the class by (app name, class name) \u2014 these must match what's in\n# llama_app.py: `app = modal.App(\"llama-8b\")` and `class Llama:`.\nLlama = modal.Cls.from_name(\"llama-8b\", \"Llama\")\n\n\ndef ask(system: str, user: str, **kwargs) -> str:\n    runner = Llama()\n    return runner.generate.remote(system=system, user=user, **kwargs)\n\n\nif __name__ == \"__main__\":\n    answer = ask(\n        system=\"You are a helpful tutor for graduate-level ML students.\",\n        user=\"In two sentences, what is the difference between BF16 and FP16 for LLM inference?\",\n        temperature=0.2,\n        max_tokens=256,\n    )\n    print(answer)\n"}, {"name": "llama_app.py", "type": "text", "content": "\"\"\"\nLlama 3.1 8B Instruct on Modal via vLLM.\n\nUsage (run these from your laptop, in the directory that contains this file):\n\n  1. modal secret create hf-token HF_TOKEN=hf_xxx_your_token_here   # one time\n  2. modal run llama_app.py::download_weights                       # one time, ~5-10 min\n  3. modal run llama_app.py::smoke_test                             # ~3-8 min first call\n\nAfter smoke_test works, call it from any Python script with `call_llama.py`.\n\"\"\"\n\n# IMPORTANT: do NOT add `from __future__ import annotations` here.\n# Modal's parameter validator reads the class type hints at decoration time\n# and chokes if they've been turned into strings by the future import.\n\nimport modal\n\n# ---------- Edit these if you want a different model / GPU ---------------\nHF_MODEL_ID = \"meta-llama/Llama-3.1-8B-Instruct\"\nGPU = \"L40S\"           # L40S handles 8B BF16 comfortably for ~$1.95/hr\nDTYPE = \"bfloat16\"\nMAX_MODEL_LEN = 8192   # context window vLLM will allocate\n# -------------------------------------------------------------------------\n\n# A Modal Volume is persistent storage that survives container restarts.\n# We download the ~16 GB of weights into it once, then every future GPU\n# container mounts the volume and reads weights from disk instead of\n# re-downloading from HuggingFace.\nWEIGHTS_VOL = modal.Volume.from_name(\"llm-weights\", create_if_missing=True)\nWEIGHTS_DIR = \"/weights\"\n\n\ndef weights_subdir(hf_id: str) -> str:\n    \"\"\"Keep the real `/` in the path. vLLM's loader runs the path through\n    a HuggingFace validator that insists the tail looks like 'org/repo'.\n    If you sanitize the slash (e.g. to '__'), you get HFValidationError.\"\"\"\n    return f\"{WEIGHTS_DIR}/{hf_id}\"\n\n\n# Image for the vLLM serving container. Pinned versions are CRITICAL:\n#   - vllm 0.8.5 is widely tested\n#   - transformers needs an UPPER bound; vllm's setup.py only says\n#     `transformers>=4.51.1` and pip will happily pick 5.x which removed\n#     methods that vllm still calls. Cap at <4.56.\nvllm_image = (\n    modal.Image.from_registry(\"nvidia/cuda:12.4.0-devel-ubuntu22.04\", add_python=\"3.11\")\n    .pip_install(\n        \"vllm==0.8.5\",\n        \"transformers>=4.51.1,<4.56\",\n        \"huggingface_hub[hf_transfer]\",\n    )\n    .env({\n        \"HF_HUB_ENABLE_HF_TRANSFER\": \"1\",\n        \"HF_XET_HIGH_PERFORMANCE\": \"1\",\n        \"VLLM_LOGGING_LEVEL\": \"WARN\",\n        # These two stop HF helpers from rejecting our local /weights path\n        # because it doesn't look like a canonical HF repo URL.\n        \"HF_HUB_OFFLINE\": \"1\",\n        \"TRANSFORMERS_OFFLINE\": \"1\",\n    })\n)\n\n# CPU-only image for the downloader. No vllm here \u2014 vllm is a huge install\n# and we don't want to pay GPU rates while we wait for HF to send bytes.\ndownload_image = (\n    modal.Image.debian_slim(python_version=\"3.11\")\n    .pip_install(\"huggingface_hub[hf_transfer]\")\n    .env({\"HF_HUB_ENABLE_HF_TRANSFER\": \"1\"})\n)\n\napp = modal.App(\"llama-8b\")\n\n\n# --------------------------------------------------------------------------\n# Step 1 of cloud lifecycle: download weights into the persistent volume.\n# Runs on a cheap CPU container. You only do this once per model.\n# --------------------------------------------------------------------------\n\n@app.function(\n    image=download_image,\n    volumes={WEIGHTS_DIR: WEIGHTS_VOL},\n    timeout=60 * 60,\n    secrets=[modal.Secret.from_name(\"hf-token\")],   # Llama is a gated model\n)\ndef download_weights(hf_id: str = HF_MODEL_ID) -> str:\n    from huggingface_hub import snapshot_download\n    target = weights_subdir(hf_id)\n    print(f\"[download] {hf_id} -> {target}\")\n    snapshot_download(\n        repo_id=hf_id,\n        local_dir=target,\n        max_workers=8,\n        # Only pull what vLLM needs for inference. Skips PyTorch .bin\n        # mirrors, training-only files, etc.\n        allow_patterns=[\"*.json\", \"*.safetensors\", \"tokenizer*\", \"*.model\", \"*.txt\"],\n    )\n    WEIGHTS_VOL.commit()   # make the writes visible to future containers\n    print(f\"[download] {hf_id} done\")\n    return target\n\n\n# --------------------------------------------------------------------------\n# Step 2: the actual inference container. @app.cls must be at module scope\n# (Modal can't import classes defined inside other functions).\n# --------------------------------------------------------------------------\n\n@app.cls(\n    image=vllm_image,\n    gpu=GPU,\n    volumes={WEIGHTS_DIR: WEIGHTS_VOL},\n    timeout=20 * 60,\n    scaledown_window=5 * 60,   # keep the container warm for 5 min after last call\n)\n@modal.concurrent(max_inputs=8)   # one container can serve up to 8 requests at once\nclass Llama:\n    # Bare `str` / `int`, NOT strings. modal.parameter() needs real type\n    # objects, which is why we can't use `from __future__ import annotations`.\n    hf_model_id: str = modal.parameter(default=HF_MODEL_ID)\n    dtype: str = modal.parameter(default=DTYPE)\n    max_model_len: int = modal.parameter(default=MAX_MODEL_LEN)\n\n    @modal.enter()\n    def load(self):\n        \"\"\"Runs once when the container starts up. Loads weights from the\n        mounted volume into GPU memory and builds vLLM's CUDA graphs.\n        Cold start is roughly 30-90 seconds for an 8B model.\"\"\"\n        from vllm import LLM\n        local_dir = weights_subdir(self.hf_model_id)\n        print(f\"[vllm] loading {self.hf_model_id} from {local_dir}\")\n        self.llm = LLM(\n            model=local_dir,\n            dtype=self.dtype,\n            gpu_memory_utilization=0.90,\n            max_model_len=self.max_model_len,\n            enforce_eager=False,\n        )\n        self.tokenizer = self.llm.get_tokenizer()\n        print(f\"[vllm] {self.hf_model_id} ready\")\n\n    @modal.method()\n    def generate(\n        self,\n        system: str,\n        user: str,\n        temperature: float = 0.7,\n        max_tokens: int = 512,\n        seed: int = 0,\n    ) -> str:\n        \"\"\"One inference call. Uses the model's chat template so you can\n        pass plain system/user strings without thinking about Llama's\n        special tokens.\"\"\"\n        from vllm import SamplingParams\n        prompt = self.tokenizer.apply_chat_template(\n            [\n                {\"role\": \"system\", \"content\": system},\n                {\"role\": \"user\", \"content\": user},\n            ],\n            tokenize=False,\n            add_generation_prompt=True,\n        )\n        params = SamplingParams(\n            temperature=temperature,\n            max_tokens=max_tokens,\n            seed=seed,\n        )\n        outputs = self.llm.generate([prompt], params)\n        return outputs[0].outputs[0].text\n\n\n# --------------------------------------------------------------------------\n# Step 3: a local entrypoint so you can verify the whole pipeline with\n# `modal run llama_app.py::smoke_test`.\n# --------------------------------------------------------------------------\n\n@app.local_entrypoint()\ndef smoke_test():\n    runner = Llama()\n    out = runner.generate.remote(\n        system=\"You are a precise assistant.\",\n        user=\"Reply with exactly: HELLO FROM LLAMA\",\n        temperature=0.0,\n        max_tokens=20,\n        seed=0,\n    )\n    print(f\"OUTPUT: {out!r}\")\n"}, {"name": "response.md", "type": "text", "content": "# Running Llama 3.1 8B Instruct on Modal \u2014 end to end\n\nYou're going to do this in five phases. Each phase is independent and verifiable, so if something breaks you'll know exactly which step to look at.\n\n1. Install Modal and log in\n2. Get a HuggingFace token and accept the Llama license\n3. Create the Modal app file (`llama_app.py`)\n4. Download the weights to Modal's cloud (one-time, ~10 min)\n5. Run a smoke test, then call it from any Python script on your laptop\n\nExpect ~$0.50\u2013$2 of Modal credit burn end-to-end the first time. Modal gives new accounts ~$30 of free credit, which is plenty.\n\n## Mental model before we start\n\nThere are two computers in this story:\n\n- **Your laptop.** Runs the `modal` CLI and any Python scripts that *call* the model.\n- **A Modal container in the cloud.** Spins up on demand with an L40S GPU attached. Loads the weights, runs vLLM, serves your request, then shuts down after 5 minutes of idle.\n\nThe Python file you'll write (`llama_app.py`) contains code for both. Functions decorated with `@app.function` or `@app.cls` run in the cloud. Functions decorated with `@app.local_entrypoint` run on your laptop. They share the source file but **nothing else** \u2014 no filesystems, no env vars, no Python packages.\n\nHold onto that and most of the weird errors stop being weird.\n\n---\n\n## Phase 1: Install Modal and authenticate\n\nOn your laptop, in whatever Python environment you want (a venv is nice but not required):\n\n```bash\npip install modal\nmodal token new\n```\n\n`modal token new` opens a browser tab. Sign up or log in. When the tab closes, your local CLI is linked to your account. New accounts get free compute credit.\n\nSanity check by running their hello-world \u2014 save this as `hello.py`:\n\n```python\nimport modal\napp = modal.App(\"hello\")\n\n@app.function()\ndef greet(name: str) -> str:\n    return f\"hello {name} from Modal!\"\n\n@app.local_entrypoint()\ndef main():\n    print(greet.remote(\"world\"))\n```\n\nThen:\n\n```bash\nmodal run hello.py\n```\n\nYou should see `hello world from Modal!` after ~30 seconds (most of that is the first-ever container build). If that doesn't work, fix it before moving on \u2014 every later step assumes auth and the CLI are functioning.\n\n---\n\n## Phase 2: HuggingFace token + Llama license\n\nLlama is a **gated model**. Meta requires you to accept their license on the HuggingFace website before HF will let you download the weights. Modal can't click the \"accept\" button for you.\n\n1. Make a HuggingFace account if you don't have one: <https://huggingface.co/join>\n2. Go to <https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct> and click \"Agree and access repository\". Approval is usually within minutes (sometimes ~1 hour).\n3. Create an access token at <https://huggingface.co/settings/tokens>. Click \"New token\", give it a name like `modal-llama`, pick the **Read** role, and copy the token (it starts with `hf_...`). You only see it once.\n\nNow tell Modal about the token by creating a Modal secret. A secret is just a key/value pair that gets injected as an environment variable inside your containers:\n\n```bash\nmodal secret create hf-token HF_TOKEN=hf_your_token_here\n```\n\nThe name `hf-token` is what we'll refer to from Python. The env var name inside the container will be `HF_TOKEN`. (If you mess up and need to overwrite it later, add `--force`.)\n\nQuick check:\n\n```bash\nmodal secret list\n```\n\nYou should see `hf-token` in the list. If you don't, the download step will fail with a confusing 401 from HuggingFace, so verify now.\n\n---\n\n## Phase 3: The Modal app file\n\nSave this as `llama_app.py`. I'll explain it after the code.\n\n```python\n\"\"\"\nLlama 3.1 8B Instruct on Modal via vLLM.\n\"\"\"\n\n# IMPORTANT: do NOT add `from __future__ import annotations` here.\n# Modal's parameter validator reads class type hints at decoration time\n# and chokes if they've been turned into strings by the future import.\n\nimport modal\n\n# ---------- Edit these if you want a different model / GPU ---------------\nHF_MODEL_ID = \"meta-llama/Llama-3.1-8B-Instruct\"\nGPU = \"L40S\"           # L40S handles 8B BF16 comfortably for ~$1.95/hr\nDTYPE = \"bfloat16\"\nMAX_MODEL_LEN = 8192\n# -------------------------------------------------------------------------\n\nWEIGHTS_VOL = modal.Volume.from_name(\"llm-weights\", create_if_missing=True)\nWEIGHTS_DIR = \"/weights\"\n\n\ndef weights_subdir(hf_id: str) -> str:\n    # Keep the real `/` in the path. vLLM's loader runs the path through\n    # a HuggingFace validator that insists the tail looks like 'org/repo'.\n    return f\"{WEIGHTS_DIR}/{hf_id}\"\n\n\n# Image for the vLLM serving container. Pinned versions are CRITICAL \u2014\n# vllm's setup.py allows transformers 5.x which removed methods vllm still\n# calls, so we cap transformers below 4.56.\nvllm_image = (\n    modal.Image.from_registry(\"nvidia/cuda:12.4.0-devel-ubuntu22.04\", add_python=\"3.11\")\n    .pip_install(\n        \"vllm==0.8.5\",\n        \"transformers>=4.51.1,<4.56\",\n        \"huggingface_hub[hf_transfer]\",\n    )\n    .env({\n        \"HF_HUB_ENABLE_HF_TRANSFER\": \"1\",\n        \"HF_XET_HIGH_PERFORMANCE\": \"1\",\n        \"VLLM_LOGGING_LEVEL\": \"WARN\",\n        # Stop HF from trying to validate our local /weights path against HF's repo URL format.\n        \"HF_HUB_OFFLINE\": \"1\",\n        \"TRANSFORMERS_OFFLINE\": \"1\",\n    })\n)\n\n# Cheap CPU image just for downloading weights \u2014 no need to spin up a GPU\n# while waiting for HuggingFace to send bytes.\ndownload_image = (\n    modal.Image.debian_slim(python_version=\"3.11\")\n    .pip_install(\"huggingface_hub[hf_transfer]\")\n    .env({\"HF_HUB_ENABLE_HF_TRANSFER\": \"1\"})\n)\n\napp = modal.App(\"llama-8b\")\n\n\n@app.function(\n    image=download_image,\n    volumes={WEIGHTS_DIR: WEIGHTS_VOL},\n    timeout=60 * 60,\n    secrets=[modal.Secret.from_name(\"hf-token\")],\n)\ndef download_weights(hf_id: str = HF_MODEL_ID) -> str:\n    from huggingface_hub import snapshot_download\n    target = weights_subdir(hf_id)\n    print(f\"[download] {hf_id} -> {target}\")\n    snapshot_download(\n        repo_id=hf_id,\n        local_dir=target,\n        max_workers=8,\n        allow_patterns=[\"*.json\", \"*.safetensors\", \"tokenizer*\", \"*.model\", \"*.txt\"],\n    )\n    WEIGHTS_VOL.commit()\n    print(f\"[download] {hf_id} done\")\n    return target\n\n\n@app.cls(\n    image=vllm_image,\n    gpu=GPU,\n    volumes={WEIGHTS_DIR: WEIGHTS_VOL},\n    timeout=20 * 60,\n    scaledown_window=5 * 60,\n)\n@modal.concurrent(max_inputs=8)\nclass Llama:\n    hf_model_id: str = modal.parameter(default=HF_MODEL_ID)\n    dtype: str = modal.parameter(default=DTYPE)\n    max_model_len: int = modal.parameter(default=MAX_MODEL_LEN)\n\n    @modal.enter()\n    def load(self):\n        from vllm import LLM\n        local_dir = weights_subdir(self.hf_model_id)\n        print(f\"[vllm] loading {self.hf_model_id} from {local_dir}\")\n        self.llm = LLM(\n            model=local_dir,\n            dtype=self.dtype,\n            gpu_memory_utilization=0.90,\n            max_model_len=self.max_model_len,\n            enforce_eager=False,\n        )\n        self.tokenizer = self.llm.get_tokenizer()\n        print(f\"[vllm] {self.hf_model_id} ready\")\n\n    @modal.method()\n    def generate(\n        self,\n        system: str,\n        user: str,\n        temperature: float = 0.7,\n        max_tokens: int = 512,\n        seed: int = 0,\n    ) -> str:\n        from vllm import SamplingParams\n        prompt = self.tokenizer.apply_chat_template(\n            [\n                {\"role\": \"system\", \"content\": system},\n                {\"role\": \"user\", \"content\": user},\n            ],\n            tokenize=False,\n            add_generation_prompt=True,\n        )\n        params = SamplingParams(\n            temperature=temperature,\n            max_tokens=max_tokens,\n            seed=seed,\n        )\n        outputs = self.llm.generate([prompt], params)\n        return outputs[0].outputs[0].text\n\n\n@app.local_entrypoint()\ndef smoke_test():\n    runner = Llama()\n    out = runner.generate.remote(\n        system=\"You are a precise assistant.\",\n        user=\"Reply with exactly: HELLO FROM LLAMA\",\n        temperature=0.0,\n        max_tokens=20,\n        seed=0,\n    )\n    print(f\"OUTPUT: {out!r}\")\n```\n\n### What each piece is doing\n\n- **`modal.Volume`** \u2014 persistent disk in the cloud. We download the ~16 GB of Llama weights into it once. Every future GPU container mounts the volume and reads weights from disk instead of re-downloading from HuggingFace.\n- **`vllm_image`** \u2014 the container image that gets built (once, cached forever) the first time you run anything. CUDA + Python + vLLM + transformers. The version pins matter \u2014 vLLM is fussy and pip's resolver will happily pick incompatible versions if you don't constrain it.\n- **`download_image`** \u2014 a separate, much smaller image used only for the downloader. No GPU, no vLLM. This saves money: at ~$2/hr for an L40S vs cents/hr for a CPU container, you do NOT want a GPU spinning while HuggingFace dribbles weights to you.\n- **`download_weights`** \u2014 the downloader function. Runs once per model, on a CPU container, with your HF token attached so it can pull the gated Llama weights.\n- **`Llama` class** \u2014 the actual inference server. The `@modal.enter()` method runs once when the container boots; that's where vLLM loads weights into GPU memory. The `@modal.method()` is what you call from outside.\n- **`scaledown_window=5*60`** \u2014 after your last request, the container stays warm for 5 minutes before Modal shuts it down. Subsequent calls within that window are fast (~1\u20132 s). Cold-start is 30\u201390 s.\n- **`@modal.concurrent(max_inputs=8)`** \u2014 vLLM batches requests internally, so one container can handle 8 in-flight requests at once.\n- **`smoke_test`** \u2014 runs on your laptop, makes one remote call to verify everything's wired up.\n\n### Why the comments insist on certain things\n\n- **No `from __future__ import annotations`.** If you add that, your `hf_model_id: str = modal.parameter(...)` annotations become strings at runtime, and Modal's validator raises `AttributeError: 'str' object has no attribute '__name__'`. Subtle and confusing.\n- **`@app.cls` at module scope.** If you ever try to wrap `Llama` inside a function (e.g. a factory like `def make_runner(gpu): @app.cls(gpu=gpu) class R: ...`), Modal raises `LocalFunctionError`. It needs to see the class at import time.\n- **The `transformers` upper bound.** Without `<4.56`, pip picks transformers 5.x \u2192 vLLM 0.8.5 crashes with `Qwen2Tokenizer has no attribute all_special_tokens_extended`. This is the single most common gotcha in the vLLM-on-Modal ecosystem.\n- **`HF_HUB_OFFLINE=1`.** Once we've cached weights locally, we don't want HF helpers reaching out to huggingface.co and complaining that `/weights/meta-llama/Llama-3.1-8B-Instruct` doesn't look like a canonical HF repo URL.\n\n---\n\n## Phase 4: Download the weights (one-time)\n\nFrom your laptop, in the directory containing `llama_app.py`:\n\n```bash\nmodal run llama_app.py::download_weights\n```\n\nWhat happens:\n\n1. Modal uploads your source file.\n2. Modal builds `download_image` (a couple minutes the first time, cached after).\n3. A CPU container starts, mounts the volume, pulls ~16 GB from HuggingFace at ~300 MB/s, commits the volume.\n4. Takes roughly 5\u201310 minutes total.\n\nIf you see a 401 / GatedRepoError, the most likely cause is that you haven't accepted the Llama license yet on the HF website, or the token doesn't have read access to gated repos.\n\nVerify the weights landed:\n\n```bash\nmodal volume ls llm-weights meta-llama/Llama-3.1-8B-Instruct\n```\n\nYou should see a bunch of `.safetensors`, `tokenizer.json`, `config.json`, etc.\n\n---\n\n## Phase 5: Smoke test, then call from your laptop\n\nThe smoke test:\n\n```bash\nmodal run llama_app.py::smoke_test\n```\n\nWhat happens:\n\n1. Modal builds `vllm_image` (the heavy one \u2014 takes 5\u201310 min the FIRST time, then it's cached forever).\n2. An L40S container spins up, mounts the volume, vLLM loads the weights into GPU RAM and warms CUDA graphs (~60 s).\n3. vLLM runs your one prompt (~1 s).\n4. You see `OUTPUT: 'HELLO FROM LLAMA'` printed.\n5. The container sits idle for 5 minutes, then shuts down.\n\nFirst-call total: roughly 3\u20138 minutes. Subsequent calls within the 5-minute warm window: ~1\u20132 seconds.\n\n### Calling it from any Python script\n\nNow the actual point of the exercise \u2014 calling Llama from a regular script on your laptop without using `modal run`. Save this as `call_llama.py`:\n\n```python\nimport modal\n\n# Look up the class by (app name, class name) \u2014 these strings must match\n# `modal.App(\"llama-8b\")` and `class Llama:` in llama_app.py.\nLlama = modal.Cls.from_name(\"llama-8b\", \"Llama\")\n\n\ndef ask(system: str, user: str, **kwargs) -> str:\n    runner = Llama()\n    return runner.generate.remote(system=system, user=user, **kwargs)\n\n\nif __name__ == \"__main__\":\n    answer = ask(\n        system=\"You are a helpful tutor for graduate-level ML students.\",\n        user=\"In two sentences, what is the difference between BF16 and FP16 for LLM inference?\",\n        temperature=0.2,\n        max_tokens=256,\n    )\n    print(answer)\n```\n\nFor `modal.Cls.from_name` to work, the app needs to have been seen by Modal at least once \u2014 which `modal run llama_app.py::smoke_test` already accomplished. Run it:\n\n```bash\npython call_llama.py\n```\n\nYou can now drop those three lines (`import modal`, `Llama = modal.Cls.from_name(...)`, `runner.generate.remote(...)`) into Jupyter, a CLI tool, a Flask handler \u2014 anywhere you can run Python.\n\n---\n\n## Useful CLI commands for day-to-day\n\n```bash\nmodal app list                          # see running apps\nmodal app logs <app-id>                 # tail logs from a running app\nmodal app stop <app-id>                 # force-stop an app\nmodal volume ls llm-weights             # see what's in your weights volume\nmodal secret list                       # see your secrets\nmodal run --detach llama_app.py::foo    # run detached (survives laptop sleep / Ctrl-C)\n```\n\nThe `--detach` flag is important if you ever kick off a longer job \u2014 without it, closing your laptop or losing WiFi will signal Modal to kill the run.\n\n---\n\n## Cost expectations\n\n- L40S GPU: **~$1.95/hr** while a container is alive (i.e. actively serving or within the 5-minute scaledown window).\n- CPU container for downloads: cents/hr.\n- Storage in volumes: free up to ~50 GB on the free tier.\n\nFor exploratory use, you'll burn through pennies. If you forget to ever stop calling the model and the container scales up and stays warm forever, you'd see ~$45/day worst case \u2014 but `scaledown_window=5*60` plus Modal's autoscaling means in practice you only pay for the seconds your code is actively using GPU plus the warm-window tail.\n\n---\n\n## Common first-time errors and what they mean\n\n| Error | Cause | Fix |\n|-------|-------|-----|\n| `Secret 'hf-token' not found in environment 'main'` | You haven't created the secret yet, or named it differently. | `modal secret create hf-token HF_TOKEN=hf_xxx` |\n| `GatedRepoError` / 401 from HF | Haven't accepted Llama license on HF website, or token lacks read access. | Visit the model page in a browser, click Agree. |\n| `AttributeError: 'str' object has no attribute '__name__'` | You added `from __future__ import annotations`. | Remove that import. |\n| `LocalFunctionError: Modal can only import functions defined in global scope` | You wrapped `@app.cls` inside a function. | Move the class to module scope. |\n| `Qwen2Tokenizer has no attribute all_special_tokens_extended` (or similar transformers-version error) | Pip resolved transformers to a too-new major. | Add `<4.56` upper bound on transformers in the image. |\n| `HFValidationError: Repo id must be in the form 'repo_name' or 'namespace/repo_name'` | You sanitized the `/` out of the local weights path. | Keep the slash: `/weights/meta-llama/Llama-3.1-8B-Instruct`. |\n| `FileNotFoundError: /root/foo.json` in a Modal function | The container can't see your laptop's filesystem. | Read the file in `@app.local_entrypoint` and pass the parsed data as an argument. |\n| `App state is APP_STATE_STOPPED` mid-run | Your laptop disconnected and Modal interpreted it as a cancel. | Use `modal run --detach` for anything longer than a few minutes. |\n\nIf you hit something not on that list, the trick is to look at which layer the error comes from (`modal.*`, `vllm.*`, `huggingface_hub.*`, `transformers.*`) and check that layer's release notes \u2014 most weirdness is one of those four moving incompatibly with another.\n\n---\n\n## What you've got at the end of this\n\n- A Modal app called `llama-8b` that hosts Llama 3.1 8B Instruct on an L40S behind vLLM.\n- A persistent `llm-weights` volume containing the weights \u2014 downloaded once, reused forever.\n- A Python interface (`call_llama.py`) you can import from anywhere.\n- Total monthly cost while not actively calling it: **$0** (the container auto-scales to zero).\n\nIf you ever want to try a bigger model (say 70B), the same file works \u2014 change `HF_MODEL_ID` to `meta-llama/Llama-3.3-70B-Instruct`, change `GPU` to `\"H100:2\"`, re-run `download_weights`, then `smoke_test`. The class structure stays the same.\n"}], "grading": {"eval_id": 1, "condition": "with_skill", "expectations": [{"text": "Mentions modal token new for first-time authentication", "passed": true, "evidence": "'modal token new' found"}, {"text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)", "passed": true, "evidence": "matched 'accept.{0,30}license'"}, {"text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret", "passed": true, "evidence": "HF_TOKEN=True, hf-token secret=True"}, {"text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM", "passed": true, "evidence": "matched: transformers>=4.51.1` and pip will happily pick 5.x which removed\n#     methods that vllm still calls. cap at <4.5"}, {"text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout", "passed": true, "evidence": "scaledown_window=True, container_idle_timeout=False"}, {"text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version", "passed": true, "evidence": "slash-layout=True, double-underscore-layout=False"}, {"text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download", "passed": true, "evidence": "weight-download-split=True"}, {"text": "Includes a runnable smoke test step that verifies one inference call works end-to-end", "passed": true, "evidence": "smoke-test reference found"}], "pass_count": 8, "total": 8}}, {"id": "eval-1-first-time-llama-host-without_skill", "prompt": "I want to run Llama 3.1 8B Instruct on a cloud GPU so I can call it from a Python script on my laptop and not pay $500 for an OpenAI subscription. A friend told me to use Modal. I've never used Modal before. Can you walk me through what I need to install, set up, and write to get a single inference call working end-to-end?", "eval_id": 1, "outputs": [{"name": "llama_client.py", "type": "text", "content": "\"\"\"\nCall the deployed Llama 3.1 8B Instruct function from your laptop.\n\nPrereqs:\n    pip install modal\n    modal token new       # one-time auth on this machine\n    modal deploy llama_modal.py   # do this once (or whenever you change llama_modal.py)\n\nThen just run:\n    python llama_client.py\n\"\"\"\n\nimport modal\n\n# Look up the deployed class by (app_name, class_name). These must match\n# what's in llama_modal.py exactly.\nLlama = modal.Cls.from_name(\"llama-3-1-8b-instruct\", \"Llama\")\n\n\ndef ask(prompt: str, system: str = \"You are a helpful assistant.\") -> str:\n    # `()` constructs a handle to the remote class; `.generate.remote(...)`\n    # ships the call to Modal and blocks until the answer comes back.\n    return Llama().generate.remote(prompt=prompt, system=system)\n\n\nif __name__ == \"__main__\":\n    answer = ask(\"In one paragraph, what's the intuition behind attention in transformers?\")\n    print(answer)\n"}, {"name": "llama_modal.py", "type": "text", "content": "\"\"\"\nLlama 3.1 8B Instruct served on Modal with vLLM.\n\nDeploy with:\n    modal deploy llama_modal.py\n\nThen call the deployed function from your laptop using llama_client.py.\n\nYou can also test the function directly from the CLI:\n    modal run llama_modal.py\n\"\"\"\n\nimport modal\n\n# ---------------------------------------------------------------------------\n# Image: a container with CUDA + vLLM + the HF libraries needed to download\n# and run Llama 3.1 8B Instruct. We bake the weights into the image so cold\n# starts don't have to re-download ~16 GB every time.\n# ---------------------------------------------------------------------------\n\nMODEL_NAME = \"meta-llama/Llama-3.1-8B-Instruct\"\nMODEL_REVISION = \"main\"  # pin to a commit SHA in production for reproducibility\n\n\ndef download_model():\n    \"\"\"Runs at image build time to pre-download the weights into the image.\"\"\"\n    from huggingface_hub import snapshot_download\n\n    snapshot_download(\n        MODEL_NAME,\n        revision=MODEL_REVISION,\n        ignore_patterns=[\"*.pt\", \"*.bin\"],  # vLLM only needs the safetensors\n    )\n\n\nimage = (\n    modal.Image.debian_slim(python_version=\"3.11\")\n    .pip_install(\n        \"vllm==0.6.3\",\n        \"huggingface_hub[hf_transfer]==0.26.2\",\n        \"transformers==4.45.2\",\n    )\n    .env({\"HF_HUB_ENABLE_HF_TRANSFER\": \"1\"})  # faster downloads\n    .run_function(\n        download_model,\n        secrets=[modal.Secret.from_name(\"huggingface-secret\")],\n        timeout=60 * 30,  # 30 min to download\n    )\n)\n\napp = modal.App(\"llama-3-1-8b-instruct\", image=image)\n\n\n# ---------------------------------------------------------------------------\n# The class is a Modal \"function\" that holds state (the loaded model) across\n# requests. @modal.enter() runs once per container; @modal.method() exposes\n# the call to the outside world.\n# ---------------------------------------------------------------------------\n\n@app.cls(\n    gpu=\"A10G\",                  # 24 GB; plenty for an 8B model in bf16\n    scaledown_window=60 * 5,     # keep the container warm for 5 min after the last call\n    timeout=60 * 10,\n    secrets=[modal.Secret.from_name(\"huggingface-secret\")],\n)\nclass Llama:\n    @modal.enter()\n    def load(self):\n        from vllm import LLM, SamplingParams  # noqa: F401  (SamplingParams used below)\n\n        # vLLM loads the model into GPU memory once, here.\n        self.llm = LLM(\n            model=MODEL_NAME,\n            revision=MODEL_REVISION,\n            dtype=\"bfloat16\",\n            gpu_memory_utilization=0.90,\n            max_model_len=8192,\n            enforce_eager=False,\n        )\n\n    @modal.method()\n    def generate(\n        self,\n        prompt: str,\n        system: str = \"You are a helpful assistant.\",\n        max_tokens: int = 512,\n        temperature: float = 0.7,\n        top_p: float = 0.95,\n    ) -> str:\n        from vllm import SamplingParams\n\n        # Llama 3.1 Instruct expects the official chat template.\n        messages = [\n            {\"role\": \"system\", \"content\": system},\n            {\"role\": \"user\", \"content\": prompt},\n        ]\n\n        # vLLM has chat() in recent versions; we use it directly so we don't\n        # have to format the chat template by hand.\n        sampling = SamplingParams(\n            temperature=temperature,\n            top_p=top_p,\n            max_tokens=max_tokens,\n        )\n        outputs = self.llm.chat(messages, sampling_params=sampling)\n        return outputs[0].outputs[0].text\n\n\n# ---------------------------------------------------------------------------\n# `modal run llama_modal.py` will execute this local entrypoint, which is the\n# fastest way to smoke-test the deployment before you call it from your laptop.\n# ---------------------------------------------------------------------------\n\n@app.local_entrypoint()\ndef main(prompt: str = \"Explain what a transformer is in two sentences.\"):\n    print(Llama().generate.remote(prompt))\n"}, {"name": "response.md", "type": "text", "content": "# Running Llama 3.1 8B Instruct on Modal \u2014 End-to-End\n\nThis walkthrough gets you from zero to a working `python script.py` on your laptop that calls a Llama 3.1 8B Instruct model running on a cloud GPU. Total setup time is ~30 minutes (most of which is waiting for the model weights to download into the container image once).\n\n## How the pieces fit together\n\n- **Modal** runs your Python functions in containers on its GPU fleet. You write a normal Python file, decorate a class/function with `@app.cls(gpu=\"A10G\", ...)`, and `modal deploy` ships it. From your laptop, you import a tiny stub and call `.remote(...)` \u2014 Modal handles auth, scheduling, GPU provisioning, and cold-start lifecycle.\n- **vLLM** is the inference engine that actually loads the model and serves tokens. It's much faster than vanilla `transformers.generate` and is the standard choice for self-hosting open models.\n- **Hugging Face** is where the weights live. Llama 3.1 is gated, so you'll request access and create an access token; Modal stores that token as a Secret and uses it to download the weights once at image-build time.\n\nThe two files you'll end up with are `llama_modal.py` (server) and `llama_client.py` (laptop).\n\n---\n\n## Step 1 \u2014 Get access to the Llama 3.1 weights on Hugging Face\n\n1. Make a Hugging Face account at https://huggingface.co/join if you don't have one.\n2. Go to https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct and click **\"Agree and access repository\"**. Fill out the Meta form (name, affiliation \u2014 \"Stanford\" is fine). Approval is usually automatic within a few minutes, occasionally a few hours.\n3. Create an access token at https://huggingface.co/settings/tokens. Click **\"New token\"**, name it something like `modal-llama`, choose token type **\"Read\"** (or fine-grained with read access to gated repos). Copy the token \u2014 it starts with `hf_...`. You'll only see it once.\n\n## Step 2 \u2014 Install Modal and authenticate\n\nIn a terminal on your laptop:\n\n```bash\n# Use a fresh virtualenv if you like\npython -m venv .venv && source .venv/bin/activate\n\npip install modal\nmodal token new\n```\n\n`modal token new` opens a browser window. Sign up (free tier gives you $30/mo of compute credits, which is way more than enough for personal use) and click \"Approve\" to link the CLI. You're now authenticated on this machine; no more token juggling.\n\n## Step 3 \u2014 Store your HF token as a Modal Secret\n\nModal Secrets are environment variables that get injected into your containers. The HF libraries automatically read `HF_TOKEN`, so name the variable exactly that.\n\n```bash\nmodal secret create huggingface-secret HF_TOKEN=hf_your_token_here\n```\n\n(You can also do this through the web UI at https://modal.com/secrets if you'd rather not paste a token into your shell history.)\n\nThe name `huggingface-secret` is what we reference in code below \u2014 keep it consistent.\n\n## Step 4 \u2014 Write the server file\n\nSave the following as **`llama_modal.py`**. The comments explain what each piece does; you shouldn't have to change anything to get a first call working.\n\n```python\n\"\"\"\nLlama 3.1 8B Instruct served on Modal with vLLM.\n\"\"\"\n\nimport modal\n\nMODEL_NAME = \"meta-llama/Llama-3.1-8B-Instruct\"\nMODEL_REVISION = \"main\"  # pin to a commit SHA in production for reproducibility\n\n\ndef download_model():\n    \"\"\"Runs at image build time to pre-download the weights into the image.\"\"\"\n    from huggingface_hub import snapshot_download\n    snapshot_download(\n        MODEL_NAME,\n        revision=MODEL_REVISION,\n        ignore_patterns=[\"*.pt\", \"*.bin\"],  # vLLM only needs the safetensors\n    )\n\n\nimage = (\n    modal.Image.debian_slim(python_version=\"3.11\")\n    .pip_install(\n        \"vllm==0.6.3\",\n        \"huggingface_hub[hf_transfer]==0.26.2\",\n        \"transformers==4.45.2\",\n    )\n    .env({\"HF_HUB_ENABLE_HF_TRANSFER\": \"1\"})  # faster downloads\n    .run_function(\n        download_model,\n        secrets=[modal.Secret.from_name(\"huggingface-secret\")],\n        timeout=60 * 30,\n    )\n)\n\napp = modal.App(\"llama-3-1-8b-instruct\", image=image)\n\n\n@app.cls(\n    gpu=\"A10G\",                  # 24 GB; plenty for an 8B model in bf16\n    scaledown_window=60 * 5,     # keep the container warm 5 min after last call\n    timeout=60 * 10,\n    secrets=[modal.Secret.from_name(\"huggingface-secret\")],\n)\nclass Llama:\n    @modal.enter()\n    def load(self):\n        from vllm import LLM\n        self.llm = LLM(\n            model=MODEL_NAME,\n            revision=MODEL_REVISION,\n            dtype=\"bfloat16\",\n            gpu_memory_utilization=0.90,\n            max_model_len=8192,\n        )\n\n    @modal.method()\n    def generate(\n        self,\n        prompt: str,\n        system: str = \"You are a helpful assistant.\",\n        max_tokens: int = 512,\n        temperature: float = 0.7,\n        top_p: float = 0.95,\n    ) -> str:\n        from vllm import SamplingParams\n        messages = [\n            {\"role\": \"system\", \"content\": system},\n            {\"role\": \"user\", \"content\": prompt},\n        ]\n        sampling = SamplingParams(\n            temperature=temperature, top_p=top_p, max_tokens=max_tokens\n        )\n        outputs = self.llm.chat(messages, sampling_params=sampling)\n        return outputs[0].outputs[0].text\n\n\n@app.local_entrypoint()\ndef main(prompt: str = \"Explain what a transformer is in two sentences.\"):\n    print(Llama().generate.remote(prompt))\n```\n\nA few things worth understanding:\n\n- **Why the class?** Modal classes let you do expensive setup (loading 16 GB of weights into VRAM) once per container in `@modal.enter()`, then handle many requests cheaply via `@modal.method()`. A bare function would re-load the model every call.\n- **Why bake weights into the image?** The `.run_function(download_model, ...)` line runs once when Modal builds the image and stores the weights as part of the container image layer. Subsequent cold starts skip the download entirely \u2014 you go from ~5 min cold start to ~30 seconds.\n- **GPU choice.** `A10G` (24 GB) is the cheapest GPU that comfortably runs an 8B model in bfloat16. If you want longer context or faster decoding, swap to `\"L4\"`, `\"A100\"`, or `\"H100\"`. Modal's pricing page lists per-second rates.\n- **`scaledown_window`** controls how long Modal keeps a container alive after the last request. Higher = fewer cold starts, more cost. 5 minutes is a reasonable default for interactive use; set it to 0 if you only ever do one-off calls.\n\n## Step 5 \u2014 Deploy and smoke-test\n\nFrom the directory containing `llama_modal.py`:\n\n```bash\n# Build the image (downloads the weights once, takes ~10-20 min).\n# Subsequent deploys are near-instant because the image is cached.\nmodal deploy llama_modal.py\n```\n\nYou'll see Modal stream build logs, then output a URL for the deployed app and a list of the functions/classes it registered. The class is now live and callable.\n\nRun a quick end-to-end smoke test:\n\n```bash\nmodal run llama_modal.py\n# Or with a custom prompt:\nmodal run llama_modal.py --prompt \"Write a haiku about gradient descent.\"\n```\n\nThe first invocation will cold-start a GPU container (~30s once weights are baked in). You should see the generated text printed to your terminal. If you immediately run it again, it'll reuse the warm container and respond in a second or two.\n\n## Step 6 \u2014 Call it from a Python script on your laptop\n\nSave this as **`llama_client.py`**:\n\n```python\nimport modal\n\n# Look up the deployed class by (app_name, class_name). These must match\n# what's in llama_modal.py exactly.\nLlama = modal.Cls.from_name(\"llama-3-1-8b-instruct\", \"Llama\")\n\n\ndef ask(prompt: str, system: str = \"You are a helpful assistant.\") -> str:\n    return Llama().generate.remote(prompt=prompt, system=system)\n\n\nif __name__ == \"__main__\":\n    answer = ask(\"In one paragraph, what's the intuition behind attention in transformers?\")\n    print(answer)\n```\n\nThen:\n\n```bash\npython llama_client.py\n```\n\nThat's the full loop. `modal.Cls.from_name(...)` resolves to the deployed class; `.generate.remote(...)` sends the call over the network. You can call `ask(...)` from anywhere in your codebase, in notebooks, in scripts, in scheduled jobs \u2014 the only requirement is that the laptop has the `modal` package installed and is authenticated via `modal token new`.\n\n---\n\n## Useful variations\n\n- **Batch / parallel calls.** Use `.map(...)` to fan out:\n  ```python\n  prompts = [\"Q1\", \"Q2\", \"Q3\"]\n  for ans in Llama().generate.map(prompts):\n      print(ans)\n  ```\n  Modal will scale up multiple containers automatically (subject to a default concurrency cap you can raise with `@app.cls(max_containers=...)`).\n\n- **OpenAI-compatible HTTP endpoint.** If you'd rather hit an HTTP endpoint with the OpenAI Python SDK, Modal has a vLLM-OpenAI example you can copy: https://modal.com/docs/examples/vllm_inference. It uses `@modal.asgi_app()` to expose vLLM's built-in OpenAI server, and then you point `openai.OpenAI(base_url=...)` at the Modal URL.\n\n- **Quick iteration.** While editing the function body (not the image), `modal serve llama_modal.py` gives you a hot-reloading dev loop \u2014 saved files redeploy in seconds.\n\n- **Cost sanity check.** An A10G runs roughly $0.001/sec on Modal. A typical short request keeps the GPU busy for a couple seconds, and the 5-minute keep-warm costs about $0.30 per idle stretch. Free credits cover thousands of calls per month at this scale.\n\n## Common gotchas\n\n- **403 from Hugging Face on first deploy.** Means your token doesn't have access to the gated repo yet. Re-check that the Meta form on the model card was approved (you'll get an email) and that the token in `huggingface-secret` is the right one.\n- **`modal: command not found`.** Make sure your virtualenv is active, or use `python -m modal ...` instead.\n- **Out-of-memory on load.** If you bumped `max_model_len` very high or switched to a smaller GPU, drop `gpu_memory_utilization` to `0.85` or shrink `max_model_len`.\n- **Forgetting to redeploy.** `python llama_client.py` always talks to whatever's currently deployed. If you change `llama_modal.py`, re-run `modal deploy llama_modal.py` before the client will see the change.\n\n## Recap of every command you'll type\n\n```bash\n# One-time setup\npip install modal\nmodal token new\nmodal secret create huggingface-secret HF_TOKEN=hf_your_token_here\n\n# Deploy (re-run whenever llama_modal.py changes)\nmodal deploy llama_modal.py\n\n# Smoke test from the CLI\nmodal run llama_modal.py --prompt \"hello\"\n\n# Use from your laptop\npython llama_client.py\n```\n\nThat's it. You now have a self-hosted Llama 3.1 8B endpoint that costs pennies per call and that you can import into any Python project.\n"}], "grading": {"eval_id": 1, "condition": "without_skill", "expectations": [{"text": "Mentions modal token new for first-time authentication", "passed": true, "evidence": "'modal token new' found"}, {"text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)", "passed": true, "evidence": "matched 'agree.{0,30}access'"}, {"text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret", "passed": true, "evidence": "HF_TOKEN=True, hf-token secret=True"}, {"text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM", "passed": false, "evidence": "matched: no transformers upper-bound pin found"}, {"text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout", "passed": true, "evidence": "scaledown_window=True, container_idle_timeout=False"}, {"text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version", "passed": false, "evidence": "slash-layout=False, double-underscore-layout=False"}, {"text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download", "passed": true, "evidence": "weight-download-split=True"}, {"text": "Includes a runnable smoke test step that verifies one inference call works end-to-end", "passed": true, "evidence": "smoke-test reference found"}], "pass_count": 6, "total": 8}}, {"id": "eval-2-debug-secret-not-found-with_skill", "prompt": "My Modal run keeps failing immediately with NotFoundError('Secret anthropic-api-key not found in environment main'). But I'm not even using Claude in this run. Why is Modal complaining about Anthropic, and how do I fix it?", "eval_id": 2, "outputs": [{"name": "response.md", "type": "text", "content": "# Why Modal is complaining about Anthropic (even though you're only using OpenAI)\n\n## The cause\n\nModal resolves **every** secret in your app's `secrets=` list at **app-build time**, before any function runs and regardless of whether any function ever actually reads from it. The `modal.Secret.from_name(\"anthropic-api-key\")` call isn't lazy \u2014 it's a lookup against your Modal workspace that has to succeed for the app graph to validate.\n\nSo when Modal builds the app:\n\n1. It walks the `SECRETS` list attached to `modal.App(..., secrets=SECRETS)`.\n2. For each entry, it asks the control plane: \"does a secret with this name exist in environment `main`?\"\n3. The lookup for `anthropic-api-key` returns \"no such secret,\" and the whole app crashes locally before a single container starts.\n\nThe fact that your trial only calls OpenAI is irrelevant \u2014 the crash happens during app construction, not during function execution. Modal is being defensive about typos: it would rather fail fast than spin up a container and have you discover a missing key 20 minutes into a run.\n\nA second, subtler point: attaching secrets at the **app** level (`modal.App(\"my-app\", secrets=SECRETS)`) means *every* function in the app inherits all three secrets. There's no way to opt out per-function, so any missing one takes down the whole app.\n\n## The fix\n\nOnly list secrets you have actually created. Comment the rest out until you create them:\n\n```python\nimport modal\n\nSECRETS = [\n    modal.Secret.from_name(\"openai-api-key\"),\n    # modal.Secret.from_name(\"anthropic-api-key\"),   # uncomment after: modal secret create anthropic-api-key ANTHROPIC_API_KEY=...\n    # modal.Secret.from_name(\"google-api-key\"),      # uncomment after: modal secret create google-api-key GOOGLE_API_KEY=...\n]\n\napp = modal.App(\"my-app\", secrets=SECRETS)\n```\n\nThat's the whole change. Don't be defensive with secrets \u2014 list only what exists right now.\n\n## Verifying and (later) re-enabling the others\n\nCheck what secrets actually exist in your workspace:\n\n```bash\nmodal secret list\n```\n\nWhen you do get an Anthropic key, create the secret and then uncomment the line:\n\n```bash\nmodal secret create anthropic-api-key ANTHROPIC_API_KEY=sk-ant-...\n```\n\nIf a secret with that name already exists and you want to overwrite it (e.g. you rotated the key), add `--force`:\n\n```bash\nmodal secret create anthropic-api-key ANTHROPIC_API_KEY=sk-ant-new... --force\n```\n\n## Optional refinement: scope secrets to the functions that need them\n\nSince you're calling multiple providers as you grow this app, consider moving secrets off the `App` and onto individual `@app.function` decorators. That way a missing Anthropic secret only breaks the Anthropic-calling function, not the whole app:\n\n```python\nimport modal\n\nOPENAI_SECRET = modal.Secret.from_name(\"openai-api-key\")\n# ANTHROPIC_SECRET = modal.Secret.from_name(\"anthropic-api-key\")\n# GOOGLE_SECRET    = modal.Secret.from_name(\"google-api-key\")\n\napp = modal.App(\"my-app\")   # no app-level secrets\n\n@app.function(secrets=[OPENAI_SECRET])\ndef call_openai(prompt: str) -> str:\n    import os, openai\n    client = openai.OpenAI(api_key=os.environ[\"OPENAI_API_KEY\"])\n    ...\n\n# When you have the key, uncomment the secret above and this function:\n# @app.function(secrets=[ANTHROPIC_SECRET])\n# def call_anthropic(prompt: str) -> str: ...\n```\n\nImportant caveat: Modal still resolves every `Secret.from_name(...)` it encounters at module import time, even module-level constants you haven't attached to a function yet. So `OPENAI_SECRET = modal.Secret.from_name(...)` for a secret that doesn't exist would still fail. Keep missing ones commented out at the constructor call site, not just at the decorator.\n\n## Summary\n\n- **Cause:** `Secret.from_name(...)` is validated at app-build time. Listing a non-existent secret crashes the app even if no function uses it.\n- **Fix:** Comment out `modal.Secret.from_name(\"anthropic-api-key\")` (and `google-api-key` if you don't have that one either). Re-add them after running `modal secret create ...`.\n- **Good habit going forward:** attach secrets at the function level rather than the app level, so a missing key only disables the function that needs it.\n"}], "grading": {"eval_id": 2, "condition": "with_skill", "expectations": [{"text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time", "passed": true, "evidence": "matched 'build.?time'"}, {"text": "Provides a concrete fix: comment out / remove the unused secret line(s)", "passed": true, "evidence": "fix language found"}, {"text": "Shows the corrected code (with anthropic and google secrets removed or commented)", "passed": true, "evidence": "corrected code shown"}, {"text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)", "passed": true, "evidence": "placeholder not pushed as primary"}], "pass_count": 4, "total": 4}}, {"id": "eval-2-debug-secret-not-found-without_skill", "prompt": "My Modal run keeps failing immediately with NotFoundError('Secret anthropic-api-key not found in environment main'). But I'm not even using Claude in this run. Why is Modal complaining about Anthropic, and how do I fix it?", "eval_id": 2, "outputs": [{"name": "response.md", "type": "text", "content": "# Why Modal is complaining about Anthropic (and how to fix it)\n\n## What's actually happening\n\nThe error is not coming from your application code at runtime \u2014 it's coming from Modal's **app initialization** on the client side, before any of your functions execute. Look closely at the message:\n\n```\nStopping app - uncaught exception raised locally:\nNotFoundError(\"Secret 'anthropic-api-key' not found in environment 'main'\")\n```\n\nTwo clues:\n\n1. **\"raised locally\"** \u2014 this happened in your local Python process while Modal was constructing the app, not inside a remote container.\n2. **\"environment 'main'\"** \u2014 Modal is looking up the secret by name in your current Modal *workspace environment* and not finding it.\n\nThe reason it cares about Anthropic even though this run only uses OpenAI is this line:\n\n```python\napp = modal.App(\"my-app\", secrets=SECRETS)\n```\n\nBy attaching `SECRETS` (which includes `modal.Secret.from_name(\"anthropic-api-key\")`) to the **App itself**, you've told Modal: \"every function in this app must have all three of these secrets mounted.\" `Secret.from_name(...)` is a lazy reference \u2014 it doesn't fail at import time, but as soon as you try to *use* the app (e.g. `modal run`, `modal deploy`, or `app.run()`), Modal resolves every referenced secret against your workspace. If even one of them doesn't exist in the environment, the whole app fails to start. It's an all-or-nothing check; Modal does not \"skip the ones you didn't call.\"\n\nSo the OpenAI-only trial never even gets a chance to run, because Modal stops at the missing `anthropic-api-key` secret.\n\n## How to fix it\n\nYou have three reasonable options, in order from cleanest to quickest.\n\n### Option 1 (recommended): scope secrets per-function, not on the App\n\nDon't put all provider secrets on the App. Attach only the secret(s) each function actually needs. This is the idiomatic Modal pattern and means a missing Anthropic key only breaks Anthropic functions.\n\n```python\nimport modal\n\napp = modal.App(\"my-app\")  # no global secrets\n\nOPENAI_SECRET = modal.Secret.from_name(\"openai-api-key\")\nANTHROPIC_SECRET = modal.Secret.from_name(\"anthropic-api-key\")\nGOOGLE_SECRET = modal.Secret.from_name(\"google-api-key\")\n\n@app.function(secrets=[OPENAI_SECRET])\ndef run_openai_trial(prompt: str):\n    import os\n    from openai import OpenAI\n    client = OpenAI(api_key=os.environ[\"OPENAI_API_KEY\"])\n    ...\n\n@app.function(secrets=[ANTHROPIC_SECRET])\ndef run_anthropic_trial(prompt: str):\n    ...\n\n@app.function(secrets=[GOOGLE_SECRET])\ndef run_google_trial(prompt: str):\n    ...\n```\n\nNow an OpenAI-only run won't even look at the Anthropic secret.\n\n### Option 2: actually create the missing secret in Modal\n\nIf you *do* eventually want all three providers under one app, just create the secrets so the lookup succeeds. Either:\n\n- **Web UI:** Modal dashboard \u2192 Secrets \u2192 New secret \u2192 name it exactly `anthropic-api-key` with key `ANTHROPIC_API_KEY`. (Also confirm you're in the `main` environment \u2014 the workspace selector is in the top nav.)\n- **CLI:**\n  ```bash\n  modal secret create anthropic-api-key ANTHROPIC_API_KEY=sk-ant-...\n  modal secret create google-api-key   GOOGLE_API_KEY=...\n  ```\n- **List what you currently have**, to confirm the name and environment:\n  ```bash\n  modal secret list\n  modal secret list --env main\n  ```\n\nCommon gotchas here: the secret exists but in a different environment (e.g. you created it in `dev` but `modal run` is using `main`), or the name has a typo / different casing than what `from_name` expects. The name in `from_name(\"anthropic-api-key\")` must match exactly.\n\n### Option 3 (quick unblock for today): just remove the unused references\n\nIf you only need OpenAI right now and don't want to create the other secrets yet, drop them from the list. You can put them back when you actually need them.\n\n```python\nSECRETS = [\n    modal.Secret.from_name(\"openai-api-key\"),\n]\napp = modal.App(\"my-app\", secrets=SECRETS)\n```\n\n## Recommendation\n\nGo with **Option 1**. Attaching secrets at the App level is convenient but it couples every function to every provider's credentials, which is exactly the failure mode you just hit. Per-function `secrets=[...]` is more secure (each container only gets what it needs), makes failures local to the affected function, and lets you onboard new providers without breaking unrelated runs.\n\n## Sanity-check checklist before re-running\n\n- [ ] `modal secret list` shows every secret your code references by name\n- [ ] The environment you're running in (`modal config show` or the `--env` flag) matches where the secrets live\n- [ ] Secret *names* (e.g. `openai-api-key`) match `from_name(...)` exactly \u2014 these are Modal's secret identifiers, not the env-var keys\n- [ ] Env-var *keys* inside each secret (e.g. `OPENAI_API_KEY`) match what your code reads with `os.environ[...]`\n"}], "grading": {"eval_id": 2, "condition": "without_skill", "expectations": [{"text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time", "passed": true, "evidence": "matched 'every secret'"}, {"text": "Provides a concrete fix: comment out / remove the unused secret line(s)", "passed": true, "evidence": "fix language found"}, {"text": "Shows the corrected code (with anthropic and google secrets removed or commented)", "passed": false, "evidence": "corrected code not clearly shown"}, {"text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)", "passed": true, "evidence": "placeholder not pushed as primary"}], "pass_count": 3, "total": 4}}, {"id": "eval-3-vllm-dependency-conflict-with_skill", "prompt": "I'm trying to host Qwen 2.5 7B on Modal with vLLM. The smoke test fails with: AttributeError: Qwen2Tokenizer has no attribute all_special_tokens_extended. My image pins only vllm==0.8.5. What's wrong and how do I fix it?", "eval_id": 3, "outputs": [{"name": "response.md", "type": "text", "content": "# vLLM + Qwen 2.5 7B: `Qwen2Tokenizer has no attribute all_special_tokens_extended`\n\n## Diagnosis\n\nThis is the classic vLLM / `transformers` version-pin mismatch.\n\nYour image installs `vllm==0.8.5` but does **not** pin `transformers`. vLLM 0.8.5's `setup.py` declares the dependency as `transformers>=4.51.1` with **no upper bound**. When pip's resolver runs inside the Modal image build, it cheerfully grabs the newest `transformers` available on PyPI \u2014 which in 2026 is the 5.x line.\n\nvLLM 0.8.5 was only ever tested against `transformers` 4.x. The 5.x release removed (or renamed) a number of tokenizer internals that vLLM still calls directly. One of those is `all_special_tokens_extended` on the slow tokenizer path used by Qwen2. When vLLM's `LLMEngine` warms up the tokenizer for `Qwen/Qwen2.5-7B-Instruct`, it reaches for that attribute and gets `AttributeError`. The crash happens during init, before a single token is generated, which matches your symptom (\"crashes during tokenizer loading\").\n\nThe same failure mode shows up for other tokenizers (Llama, Mistral) on the same vLLM/transformers combo \u2014 it's not Qwen-specific, you just happened to hit it on Qwen first.\n\nA secondary issue worth flagging: `huggingface_hub` is also unpinned. The newer hub releases occasionally break vLLM's snapshot-download code paths. If you upper-bound `transformers` but leave `huggingface_hub` open, you may trade one dependency crash for another in a few weeks. Pin it now while you're already touching the image.\n\n## Fix \u2014 corrected image definition\n\n```python\nvllm_image = (\n    modal.Image.from_registry(\n        \"nvidia/cuda:12.4.0-devel-ubuntu22.04\",\n        add_python=\"3.11\",\n    )\n    .pip_install(\n        \"vllm==0.8.5\",\n        \"transformers>=4.51.1,<4.56\",   # critical: keep transformers on the 4.x line vLLM was tested against\n        \"huggingface_hub>=0.24,<0.30\",  # defensive upper bound on the hub client too\n    )\n)\n```\n\nThat's the whole fix. Rebuild the image (Modal will rebuild automatically the next time you `modal run`), and the tokenizer will load cleanly.\n\n## Why this keeps happening \u2014 and how to avoid the next one\n\nThe general rule for the vLLM + `transformers` + `torch` + `huggingface_hub` ecosystem: **always add upper bounds when you pin vLLM.** Open upper bounds will get you eventually. Every vLLM minor release was tested against a specific range of `transformers`; pip's resolver doesn't know that range and will happily pull something newer.\n\nWhen you bump vLLM in the future:\n\n1. Check the vLLM release notes for the version you're moving to.\n2. Find the `transformers` range they tested against (usually mentioned in the changelog, otherwise inspect their `requirements.txt` on GitHub at that tag).\n3. Pin both with explicit upper bounds in your `.pip_install(...)`.\n\nIf a Modal image build succeeds but the container crashes on first run with an `AttributeError` deep inside `transformers` or `tokenizers`, the version-pin mismatch should be your first hypothesis \u2014 not a bug in vLLM, not a corrupted weight download.\n\n## Verification\n\nAfter updating the image, re-run your smoke test. You should see vLLM's startup logs progress past the tokenizer-loading step (look for `Starting vLLM engine` \u2192 `Loading model weights` \u2192 `Capturing CUDA graphs`) and then accept a generation request.\n\nIf the smoke test still fails, the next things to check (in order):\n\n1. Is the image actually rebuilt? Modal caches aggressively \u2014 confirm the build logs show `Collecting transformers<4.56` rather than skipping straight to \"Using cached image\".\n2. Are weights laid out at `/weights/<org>/<name>/` with a real slash (not sanitized to `__`)? vLLM's loader runs the path through HF's repo-id validator and rejects sanitized paths with `HFValidationError`.\n3. Is the GPU big enough? Qwen 2.5 7B at fp16 wants ~15 GB just for weights; an L40S (48 GB) or A100-40GB is comfortable, an L4 (24 GB) is tight once you add KV cache.\n"}], "grading": {"eval_id": 3, "condition": "with_skill", "expectations": [{"text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)", "passed": true, "evidence": "matched 'version.{0,30}mismatch'"}, {"text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)", "passed": true, "evidence": "matched: transformers>=4.51.1,<4.5"}, {"text": "Shows corrected pip_install code with the transformers pin", "passed": true, "evidence": "corrected pip_install shown"}, {"text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues", "passed": true, "evidence": "matched 'open.{0,30}upper bound'"}, {"text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)", "passed": true, "evidence": "downgrade NOT suggested"}], "pass_count": 5, "total": 5}}, {"id": "eval-3-vllm-dependency-conflict-without_skill", "prompt": "I'm trying to host Qwen 2.5 7B on Modal with vLLM. The smoke test fails with: AttributeError: Qwen2Tokenizer has no attribute all_special_tokens_extended. My image pins only vllm==0.8.5. What's wrong and how do I fix it?", "eval_id": 3, "outputs": [{"name": "response.md", "type": "text", "content": "# Diagnosing `Qwen2Tokenizer has no attribute all_special_tokens_extended` on Modal + vLLM\n\n## TL;DR\n\nThis is a **`transformers` / `vllm` version mismatch**, not a Qwen-specific bug. `vllm==0.8.5` was built against an older `transformers` API. When pip resolves the dependency tree on the Modal image, `huggingface_hub` (and vLLM's own loose pins) pull in a newer `transformers` (>= 4.46) whose `PreTrainedTokenizerFast` / `Qwen2Tokenizer` surface no longer exposes `all_special_tokens_extended` in the way vLLM 0.8.5's tokenizer wrapper expects. vLLM crashes inside `get_tokenizer()` before the engine ever starts.\n\nThe fix is to pin a compatible `transformers` (and `tokenizers`) version into the image, and ideally upgrade vLLM to a version whose Qwen2 support is current.\n\n---\n\n## What's actually going wrong\n\n1. `vllm==0.8.5` ships with `transformers>=4.45.0` as a *lower* bound but no firm upper bound.\n2. `huggingface_hub` (unpinned in your `pip_install`) resolves to the latest, which in turn lets pip resolve `transformers` to >=4.46 / 4.47.\n3. In newer `transformers`, `Qwen2Tokenizer` (slow) and `Qwen2TokenizerFast` had internals refactored. vLLM 0.8.5's `vllm/transformers_utils/tokenizer.py` calls `tokenizer.all_special_tokens_extended` on the returned object, but the slow `Qwen2Tokenizer` no longer carries that attribute directly (it was on `PreTrainedTokenizerBase` and got moved/renamed in the refactor).\n4. Result: `AttributeError: Qwen2Tokenizer has no attribute all_special_tokens_extended` during `LLM(...)` / `AsyncLLMEngine.from_engine_args(...)` init, before any inference runs.\n\nA secondary aggravator: when you let `huggingface_hub` float, it often pulls a version that requires a `tokenizers` >= 0.20, which silently upgrades `tokenizers` too. vLLM 0.8.5 was tested against `tokenizers==0.19.x`. That combination is where this specific `AttributeError` shows up most often.\n\nYou can confirm the diagnosis quickly by exec'ing into the built image:\n\n```bash\nmodal shell <your_app>::<your_fn>\npython -c \"import transformers, tokenizers, vllm; print(transformers.__version__, tokenizers.__version__, vllm.__version__)\"\n```\n\nYou'll almost certainly see `transformers >= 4.46` paired with `vllm 0.8.5`.\n\n---\n\n## The fix\n\nYou have two good options. **Option A** (recommended) upgrades vLLM to a version that natively supports current `transformers` + Qwen2.5. **Option B** keeps vLLM 0.8.5 but pins the transformers stack it was built against.\n\n### Option A (recommended): upgrade vLLM\n\nQwen2.5-7B is well-supported on recent vLLM (0.6.x is the original Qwen2.5 line; 0.8.x / 0.9.x continue support). Use a vLLM release that pins a known-good transformers internally, and pin transformers yourself for reproducibility:\n\n```python\nimport modal\n\nvllm_image = (\n    modal.Image.from_registry(\n        \"nvidia/cuda:12.4.0-devel-ubuntu22.04\",\n        add_python=\"3.11\",\n    )\n    .pip_install(\n        \"vllm==0.6.3.post1\",        # known-good with Qwen2.5-7B\n        \"transformers==4.45.2\",     # matches vllm 0.6.3's tested pin\n        \"tokenizers==0.20.3\",\n        \"huggingface_hub==0.25.2\",\n        \"torch==2.4.0\",             # vllm 0.6.3 wants torch 2.4.x\n    )\n    .env({\"VLLM_WORKER_MULTIPROC_METHOD\": \"spawn\"})\n)\n```\n\nIf you want to stay on the 0.8.x line, this combination is known to work:\n\n```python\n.pip_install(\n    \"vllm==0.8.5.post1\",\n    \"transformers==4.46.3\",\n    \"tokenizers==0.20.3\",\n    \"huggingface_hub==0.26.2\",\n)\n```\n\n### Option B: stay on vLLM 0.8.5, pin the rest\n\nIf you must keep `vllm==0.8.5` exactly:\n\n```python\nvllm_image = (\n    modal.Image.from_registry(\n        \"nvidia/cuda:12.4.0-devel-ubuntu22.04\",\n        add_python=\"3.11\",\n    )\n    .pip_install(\n        \"vllm==0.8.5\",\n        \"transformers==4.45.2\",\n        \"tokenizers==0.19.1\",\n        \"huggingface_hub==0.24.7\",\n    )\n)\n```\n\nThe key is pinning `transformers`, `tokenizers`, AND `huggingface_hub` together. If you only pin one, pip will happily upgrade the others to satisfy transitive constraints and you'll land back in the same broken state.\n\n---\n\n## A few other things worth fixing while you're in the image\n\n1. **CUDA base image.** vLLM only needs the *runtime* libs, not the full CUDA toolchain. Using `-devel` makes the image ~3 GB larger and slows cold starts. Switch to `nvidia/cuda:12.4.1-runtime-ubuntu22.04` unless you're compiling kernels.\n2. **Flash-attention.** vLLM 0.6+/0.8+ wheels bundle FA2 for most common GPU/CUDA combos, so you usually don't need to install it separately. If you do, pin it explicitly (`flash-attn==2.6.3` for the 0.6.3 era).\n3. **HF cache on a Modal Volume.** Add a `modal.Volume` mounted at `/root/.cache/huggingface` so the 15 GB Qwen2.5-7B weights download once, not on every cold start.\n4. **GPU memory headroom.** Qwen2.5-7B in fp16 fits on a single A10G (24 GB), but with default `gpu_memory_utilization=0.9` and a long context you can OOM. Start the engine with `max_model_len=8192, gpu_memory_utilization=0.85` and tune up.\n\n### Full revised module sketch\n\n```python\nimport modal\n\nvllm_image = (\n    modal.Image.from_registry(\n        \"nvidia/cuda:12.4.1-runtime-ubuntu22.04\",\n        add_python=\"3.11\",\n    )\n    .pip_install(\n        \"vllm==0.6.3.post1\",\n        \"transformers==4.45.2\",\n        \"tokenizers==0.20.3\",\n        \"huggingface_hub==0.25.2\",\n        \"torch==2.4.0\",\n    )\n    .env({\"HF_HUB_ENABLE_HF_TRANSFER\": \"1\"})\n)\n\napp = modal.App(\"qwen25-7b\")\nhf_cache = modal.Volume.from_name(\"hf-cache\", create_if_missing=True)\n\n@app.cls(\n    image=vllm_image,\n    gpu=\"A10G\",\n    volumes={\"/root/.cache/huggingface\": hf_cache},\n    timeout=60 * 30,\n    scaledown_window=60 * 5,\n)\nclass QwenServer:\n    @modal.enter()\n    def load(self):\n        from vllm import LLM\n        self.llm = LLM(\n            model=\"Qwen/Qwen2.5-7B-Instruct\",\n            max_model_len=8192,\n            gpu_memory_utilization=0.85,\n            dtype=\"bfloat16\",\n        )\n\n    @modal.method()\n    def generate(self, prompt: str) -> str:\n        from vllm import SamplingParams\n        out = self.llm.generate(\n            [prompt],\n            SamplingParams(temperature=0.7, max_tokens=512),\n        )\n        return out[0].outputs[0].text\n```\n\n---\n\n## How to verify the fix\n\nAfter rebuilding, run a one-shot smoke test:\n\n```python\n@app.function(image=vllm_image)\ndef smoke():\n    import transformers, tokenizers, vllm\n    print(\"vllm\", vllm.__version__)\n    print(\"transformers\", transformers.__version__)\n    print(\"tokenizers\", tokenizers.__version__)\n    from transformers import AutoTokenizer\n    tok = AutoTokenizer.from_pretrained(\"Qwen/Qwen2.5-7B-Instruct\")\n    print(\"has attr:\", hasattr(tok, \"all_special_tokens_extended\"))\n    print(tok.all_special_tokens_extended[:3])\n```\n\nIf `has attr: True` prints, the tokenizer surface vLLM expects is intact and `LLM(...)` will initialize cleanly.\n\n---\n\n## Summary\n\n- **Root cause:** unpinned dependencies caused pip to install a `transformers` version newer than what `vllm==0.8.5` was tested against; the `Qwen2Tokenizer` surface vLLM relies on (`all_special_tokens_extended`) is no longer present in the form it expects.\n- **Fix:** pin `transformers`, `tokenizers`, and `huggingface_hub` together with your `vllm` version. Easiest path is `vllm==0.6.3.post1` + `transformers==4.45.2` + `tokenizers==0.20.3` + `huggingface_hub==0.25.2`.\n- **Bonus cleanups:** switch base image to `cuda:12.4.1-runtime`, cache HF weights on a Modal Volume, lower `gpu_memory_utilization` to avoid OOM.\n"}], "grading": {"eval_id": 3, "condition": "without_skill", "expectations": [{"text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)", "passed": true, "evidence": "matched 'version.{0,30}mismatch'"}, {"text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)", "passed": false, "evidence": "matched: no transformers upper-bound pin found"}, {"text": "Shows corrected pip_install code with the transformers pin", "passed": true, "evidence": "corrected pip_install shown"}, {"text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues", "passed": false, "evidence": "no explanation of WHY this happens"}, {"text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)", "passed": false, "evidence": "vllm downgrade suggested"}], "pass_count": 2, "total": 5}}, {"id": "eval-4-long-run-killed-by-sleep-with_skill", "prompt": "I started a 3-hour Modal run with modal run, closed my laptop, came back and it had died with 'local client disconnected' errors. How do I prevent this and recover partial results?", "eval_id": 4, "outputs": [{"name": "response.md", "type": "text", "content": "# Modal long run killed when laptop slept \u2014 diagnosis, prevention, recovery\n\n## What actually happened\n\nThe error signature is unambiguous: `App state is APP_STATE_STOPPED` plus `local client disconnected` after roughly 40 minutes is Modal's standard pattern for **\"the local CLI lost its connection, so Modal cancelled the run.\"**\n\nYou started the job with:\n\n```bash\nmodal run modal_app.py::full_run --confirm yes\n```\n\nPlain `modal run` (without `--detach`) opens a streaming session between your laptop and Modal's control plane. While that session is alive, Modal forwards container logs to your terminal \u2014 and, crucially, **treats a client disconnect as a cancel signal**. The model is \"you're watching it; if you walk away, you must want it stopped.\"\n\nWhen you closed your laptop and went to dinner, macOS suspended the network within a minute or two. Modal's server saw the heartbeat from your CLI stop, waited out its grace period, and then transitioned the app to `APP_STATE_STOPPED`. All in-flight containers were torn down. The 40 minutes you saw is just how long the run survived between the suspend and the server-side timeout.\n\nThis is not a bug \u2014 it's the documented behavior of attached runs. It is also the single most common way long Modal jobs die.\n\n## Prevention: always use `--detach` for anything over a few minutes\n\nThe one-flag fix:\n\n```bash\nmodal run --detach modal_app.py::full_run --confirm yes\n```\n\nWith `--detach`, Modal runs the app entirely on its own infrastructure. Your CLI prints the dashboard URL and exits. Closing your laptop, losing WiFi, killing your terminal \u2014 none of it touches the running job.\n\nUseful companion commands while a detached run is in flight:\n\n```bash\nmodal app list                       # find your running app's ID\nmodal app logs <app-id>              # re-attach to live logs from any machine\nmodal app stop <app-id>              # kill it on purpose\n```\n\nYou can also just open the dashboard URL Modal printed at launch and watch progress there.\n\nA few practical habits that go with `--detach`:\n\n1. **Default to `--detach` for any run > ~5 minutes.** The cost of using it on a short run is zero; the cost of forgetting it on a long run is the entire run.\n2. **Print the app ID at the start of your entrypoint** (or just copy it from the dashboard URL) so you can `modal app logs <id>` from your phone or another machine.\n3. **Disable laptop sleep during attached runs** if you ever do leave one running \u2014 `caffeinate -dims` on macOS for the duration. But this is a backup; `--detach` is the real answer.\n4. **Don't rely on Ctrl-C-to-pause semantics.** In an attached run, Ctrl-C kills the whole app the same way a disconnect does.\n\n## Recovery: were your trials actually lost?\n\nProbably not all of them \u2014 but **it depends entirely on how `full_run` was writing results**. Two scenarios:\n\n### Scenario A: trials write to a `modal.Volume` and commit per-trial\n\nIf the function looks something like:\n\n```python\nresults_vol = modal.Volume.from_name(\"my-results\", create_if_missing=True)\n\n@app.function(volumes={\"/vol\": results_vol})\ndef run_trial(...):\n    ...\n    with open(f\"/vol/trial_{i}.jsonl\", \"a\") as f:\n        f.write(json.dumps(result) + \"\\n\")\n    results_vol.commit()    # <-- the key line\n```\n\n\u2026then every trial that finished before the disconnect is **already saved**, and you can pull it back right now:\n\n```bash\nmodal volume ls <your-volume-name>\nmodal volume get <your-volume-name> <path> ./recovered/\n```\n\n`modal volume ls` is the first thing to run. Look at file timestamps \u2014 anything dated before the crash is recoverable.\n\n### Scenario B: results are accumulated in memory and written at the end\n\nIf `full_run` collected results in a Python list/dict in the orchestrator and only wrote the file at the end (a very common pattern), **those in-memory results died with the container** and there is nothing on the Modal side to recover. Modal does not snapshot container memory.\n\nIn this case the only \"recovery\" is to look in two places:\n\n- **The Modal dashboard for the killed app.** Open it from `modal app list --all` or your dashboard history. Per-container logs are retained for a while after the app stops \u2014 if your trial function printed results (or even partial info like `trial 17 -> score 0.82`), you can scrape them from the logs. Not ideal, but better than zero. `modal app logs <app-id>` may also still return the historical logs depending on retention.\n- **Any provider-side artifacts.** If your trials were API calls (OpenAI, Anthropic, Groq, etc.), the provider's own dashboard / usage logs / request history may have the responses you can reconstruct from.\n\n### How to make recovery automatic next time\n\nThe skill calls this \"flush per-trial\" and it's worth adopting as a rule for any multi-hour Modal job:\n\n```python\n# Inside the per-trial code path, not the outer orchestrator:\nwith open(f\"/vol/results/{trial_id}.json\", \"w\") as f:\n    json.dump(result, f)\nresults_vol.commit()    # cheap; do it every trial\n```\n\nTwo reasons this matters beyond the laptop-sleep case:\n\n- **Spot preemptions.** Modal occasionally preempts containers (especially for hot GPU classes like H100). Per-trial flush bounds your loss to one trial.\n- **Resumability.** If trial files are named by trial ID, your entrypoint can on startup `os.listdir(\"/vol/results/\")` and skip work that's already done \u2014 turning recovery into a re-run rather than a restart from zero.\n\n## Concrete checklist for your next launch\n\n1. Modify `full_run` so each trial's result is written to a `modal.Volume` and committed immediately after that trial completes. Name files by trial ID so re-runs can skip completed ones.\n2. Add a skip-if-exists check at the top of the trial function so you can re-run safely without redoing finished trials.\n3. Launch with `--detach`:\n   ```bash\n   modal run --detach modal_app.py::full_run --confirm yes\n   ```\n4. Grab the app ID from the printed dashboard URL. Stash it somewhere (paste it into a note).\n5. Close laptop, go to dinner, sleep. Whenever you check back: `modal app logs <app-id>` or just refresh the dashboard.\n6. After it finishes, pull results with `modal volume get <volname> results/ ./local-results/`.\n\n## TL;DR\n\n- **Cause:** `modal run` without `--detach` cancels the job when the local CLI disconnects. Laptop sleep = disconnect.\n- **Prevention:** always `modal run --detach ...` for runs longer than a few minutes. Monitor via dashboard or `modal app logs <app-id>`.\n- **Recovery:** check `modal volume ls` first \u2014 anything your code committed to a volume before the crash is still there. If `full_run` only wrote at the end, the in-memory results are gone, but the dashboard logs may contain enough to reconstruct partial data.\n- **Architectural fix:** flush + commit results per-trial, key files by trial ID, and make the entrypoint skip already-completed trials. That turns a crash from \"lose everything\" into \"resume where you left off.\"\n"}], "grading": {"eval_id": 4, "condition": "with_skill", "expectations": [{"text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app", "passed": true, "evidence": "matched 'local.{0,30}disconnect'"}, {"text": "Primary fix: re-launch with modal run --detach", "passed": true, "evidence": "--detach recommended"}, {"text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)", "passed": true, "evidence": "progress tracking explained"}, {"text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get", "passed": true, "evidence": "volume recovery explained"}, {"text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)", "passed": true, "evidence": "per-trial flush pattern mentioned"}], "pass_count": 5, "total": 5}}, {"id": "eval-4-long-run-killed-by-sleep-without_skill", "prompt": "I started a 3-hour Modal run with modal run, closed my laptop, came back and it had died with 'local client disconnected' errors. How do I prevent this and recover partial results?", "eval_id": 4, "outputs": [{"name": "response.md", "type": "text", "content": "# Your Modal run died because your laptop fell asleep, not because Modal failed\n\n## What actually happened\n\nThe errors you saw \u2014 `local client disconnected` and `App state is APP_STATE_STOPPED` \u2014 are the classic fingerprint of a foreground `modal run` invocation where the **local client** (your laptop) went away. Here is the chain of events:\n\n1. `modal run modal_app.py::full_run` runs the function on Modal's cloud, but the **driver process lives on your laptop**. The local CLI holds an open gRPC stream to the Modal control plane, streams logs back to your terminal, and \u2014 critically \u2014 owns the App's lifecycle.\n2. When you closed the lid, macOS suspended the process (or the network) after a short grace period. Modal's server stopped receiving heartbeats from the client.\n3. Modal treats `modal run` as an **ephemeral / interactive** App. When the client disappears, the server tears the App down: `APP_STATE_STOPPED`. Any container that was mid-trial is killed; any function still in the queue is cancelled.\n4. Your terminal, when it woke up, reconnected, saw the App had been stopped server-side, and printed the disconnect error.\n\nThis is by design. `modal run` is meant for interactive development \u2014 Ctrl-C should kill the job. It is the wrong entry point for a 3-hour unattended sweep.\n\n## Can you recover the partial results? Maybe \u2014 depends on where you wrote them\n\nThe trials themselves are gone (the containers were killed). But any **side effects that completed before the kill** persisted, because Modal Volumes, Dicts, Queues, cloud buckets, and W&B/MLflow runs all live on the server side, not in your driver process.\n\nCheck, in roughly this order:\n\n1. **Modal Volume / NetworkFileSystem.** If your trial code did something like `vol.commit()` or wrote to a mounted `modal.Volume`, the files are still there. Mount the volume locally and copy them out:\n   ```bash\n   modal volume ls <volume-name>\n   modal volume get <volume-name> <remote-path> <local-path>\n   ```\n   Note that writes are only durable after `volume.commit()` \u2014 uncommitted writes from killed containers are lost. If you only committed at the end of the run, you have nothing.\n\n2. **Modal Dict / Queue.** If you used `modal.Dict` or `modal.Queue` as a results store, the entries that were `.put()` before the kill are still there. Look them up by name:\n   ```python\n   import modal\n   d = modal.Dict.from_name(\"trial-results\")\n   for k in d.keys(): print(k, d[k])\n   ```\n\n3. **External stores.** S3/GCS uploads, a Postgres/SQLite-on-volume write, W&B/MLflow logging \u2014 all of those completed-before-the-kill records survive. Check your experiment tracker first; that is usually the fastest way to inventory what got through.\n\n4. **Modal app logs.** Even if you wrote nothing durable, the stdout from completed trials is retained in the Modal dashboard for a while. Find the dead App in the web UI (Apps -> Stopped) and you can at least scrape printed metrics out of the logs as a last resort:\n   ```bash\n   modal app list --json | grep <app-name>\n   modal app logs <app-id>\n   ```\n\n5. **Local terminal scrollback.** Embarrassing but real \u2014 if your terminal kept history, the streamed logs up to disconnect are sitting in your scrollback buffer.\n\nIf none of the above apply, the trials are gone and the lesson is that long runs need a results sink that is committed per-trial, not at the end.\n\n## How to make sure this never happens again\n\nThere are two independent fixes. Do **both**.\n\n### Fix 1: Detach the run from your laptop\n\nUse `modal run --detach` (or the equivalent `modal.runner.deploy_app` / scheduled function pattern). With `--detach`, the App keeps running on Modal even if your client disconnects; closing your laptop, losing wifi, or Ctrl-C-ing the terminal no longer kills it.\n\n```bash\nmodal run --detach modal_app.py::full_run --confirm yes\n```\n\nYou will get an App ID printed immediately. You can then:\n\n- Stream logs from anywhere: `modal app logs <app-id>`\n- List running apps: `modal app list`\n- Stop it deliberately: `modal app stop <app-id>`\n\nFor something you re-run regularly, promote it from `modal run` to `modal deploy` and either call it via `Function.lookup(...).remote()` or schedule it with `modal.Period` / `modal.Cron`. Deployed functions are fully decoupled from any client.\n\n### Fix 2: Make trials individually durable (so disconnects are survivable)\n\nEven with `--detach`, things still die \u2014 preemptions, OOMs, bad code in trial 47. Design so that losing the driver never costs you completed work:\n\n- **Write each trial's result the moment it finishes**, to a Modal Volume (with `commit()`), a Dict, or an external store. Never accumulate in an in-memory list that only persists at the end.\n- **Make the run idempotent / resumable.** Before launching trial `i`, check whether its result already exists; if so, skip. This turns any crash into a cheap restart.\n- **Use `Function.map` or `Function.spawn`** instead of a Python `for` loop in the driver. `.map` parallelizes server-side and returns results as they complete, so the server \u2014 not your laptop \u2014 owns the iteration. `.spawn` returns a `FunctionCall` object you can poll later from a fresh process.\n- **Set per-function `timeout=`, `retries=`, and `max_containers=`** so individual trial failures don't take the whole sweep down.\n\nA minimal resumable pattern:\n\n```python\nimport modal\napp = modal.App(\"sweep\")\nvol = modal.Volume.from_name(\"sweep-results\", create_if_missing=True)\nresults = modal.Dict.from_name(\"sweep-results-dict\", create_if_missing=True)\n\n@app.function(volumes={\"/out\": vol}, timeout=60*60, retries=2)\ndef run_trial(cfg):\n    key = cfg[\"id\"]\n    if key in results:        # idempotent skip\n        return results[key]\n    out = do_work(cfg)\n    results[key] = out        # durable the instant it returns\n    vol.commit()\n    return out\n\n@app.local_entrypoint()\ndef full_run():\n    cfgs = [...]\n    for r in run_trial.map(cfgs, order_outputs=False):\n        print(r)\n```\n\nRun it with `modal run --detach modal_app.py::full_run`. Now you can close your laptop, the App keeps running, every trial commits as it finishes, and if anything ever does die mid-sweep you re-invoke the same command and it resumes from where it stopped.\n\n### Bonus: prevent the laptop sleep itself\n\nBelt-and-suspenders for the times you forget `--detach`:\n\n- `caffeinate -i -s modal run ...` on macOS prevents idle/system sleep for the duration of the command.\n- Or in System Settings -> Battery -> Options, enable \"Prevent automatic sleeping on power adapter when the display is off\" (only useful with the lid open or an external display).\n- Closing the lid still suspends regardless \u2014 only `--detach` truly fixes that case.\n\n## TL;DR\n\n- **Cause:** `modal run` (without `--detach`) is a foreground command tethered to your laptop. Lid-close suspended the client, Modal saw the disconnect, and stopped the App.\n- **Recovery:** check Modal Volumes (`modal volume get`), Dicts, your experiment tracker (W&B/MLflow), external buckets, and the App's retained logs in the dashboard. Anything written and committed before the kill is still there; in-memory results are not.\n- **Prevention:** always launch long runs with `modal run --detach` (or `modal deploy` + schedule), persist each trial's result the moment it completes, and make the entrypoint idempotent so re-runs resume rather than restart.\n"}], "grading": {"eval_id": 4, "condition": "without_skill", "expectations": [{"text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app", "passed": true, "evidence": "matched 'local.{0,30}disconnect'"}, {"text": "Primary fix: re-launch with modal run --detach", "passed": true, "evidence": "--detach recommended"}, {"text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)", "passed": true, "evidence": "progress tracking explained"}, {"text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get", "passed": true, "evidence": "volume recovery explained"}, {"text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)", "passed": true, "evidence": "per-trial flush pattern mentioned"}], "pass_count": 5, "total": 5}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"skill_name": "modal-setup", "iteration": 1, "configurations": [{"condition": "with_skill", "pass_rate_mean": 1.0, "pass_rate_stddev": 0.0, "duration_mean": 79.95, "duration_stddev": 62.74442870353777, "tokens_mean": 29885, "tokens_stddev": 8951.142236236297, "per_eval": [{"eval_id": 1, "eval_name": "first-time-llama-host", "pass_count": 8, "total": 8, "pass_rate": 1.0, "duration_seconds": 172.3, "total_tokens": 43291, "expectations": [{"text": "Mentions modal token new for first-time authentication", "passed": true, "evidence": "'modal token new' found"}, {"text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)", "passed": true, "evidence": "matched 'accept.{0,30}license'"}, {"text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret", "passed": true, "evidence": "HF_TOKEN=True, hf-token secret=True"}, {"text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM", "passed": true, "evidence": "matched: transformers>=4.51.1` and pip will happily pick 5.x which removed\n#     methods that vllm still calls. cap at <4.5"}, {"text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout", "passed": true, "evidence": "scaledown_window=True, container_idle_timeout=False"}, {"text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version", "passed": true, "evidence": "slash-layout=True, double-underscore-layout=False"}, {"text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download", "passed": true, "evidence": "weight-download-split=True"}, {"text": "Includes a runnable smoke test step that verifies one inference call works end-to-end", "passed": true, "evidence": "smoke-test reference found"}]}, {"eval_id": 2, "eval_name": "debug-secret-not-found", "pass_count": 4, "total": 4, "pass_rate": 1.0, "duration_seconds": 37.7, "total_tokens": 25080, "expectations": [{"text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time", "passed": true, "evidence": "matched 'build.?time'"}, {"text": "Provides a concrete fix: comment out / remove the unused secret line(s)", "passed": true, "evidence": "fix language found"}, {"text": "Shows the corrected code (with anthropic and google secrets removed or commented)", "passed": true, "evidence": "corrected code shown"}, {"text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)", "passed": true, "evidence": "placeholder not pushed as primary"}]}, {"eval_id": 3, "eval_name": "vllm-dependency-conflict", "pass_count": 5, "total": 5, "pass_rate": 1.0, "duration_seconds": 43.9, "total_tokens": 25050, "expectations": [{"text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)", "passed": true, "evidence": "matched 'version.{0,30}mismatch'"}, {"text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)", "passed": true, "evidence": "matched: transformers>=4.51.1,<4.5"}, {"text": "Shows corrected pip_install code with the transformers pin", "passed": true, "evidence": "corrected pip_install shown"}, {"text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues", "passed": true, "evidence": "matched 'open.{0,30}upper bound'"}, {"text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)", "passed": true, "evidence": "downgrade NOT suggested"}]}, {"eval_id": 4, "eval_name": "long-run-killed-by-sleep", "pass_count": 5, "total": 5, "pass_rate": 1.0, "duration_seconds": 65.9, "total_tokens": 26119, "expectations": [{"text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app", "passed": true, "evidence": "matched 'local.{0,30}disconnect'"}, {"text": "Primary fix: re-launch with modal run --detach", "passed": true, "evidence": "--detach recommended"}, {"text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)", "passed": true, "evidence": "progress tracking explained"}, {"text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get", "passed": true, "evidence": "volume recovery explained"}, {"text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)", "passed": true, "evidence": "per-trial flush pattern mentioned"}]}], "n_evals": 4}, {"condition": "without_skill", "pass_rate_mean": 0.725, "pass_rate_stddev": 0.24664414311581237, "duration_mean": 71.05, "duration_stddev": 22.673993913732975, "tokens_mean": 21684.5, "tokens_stddev": 1940.6446523427896, "per_eval": [{"eval_id": 1, "eval_name": "first-time-llama-host", "pass_count": 6, "total": 8, "pass_rate": 0.75, "duration_seconds": 100.5, "total_tokens": 24394, "expectations": [{"text": "Mentions modal token new for first-time authentication", "passed": true, "evidence": "'modal token new' found"}, {"text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)", "passed": true, "evidence": "matched 'agree.{0,30}access'"}, {"text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret", "passed": true, "evidence": "HF_TOKEN=True, hf-token secret=True"}, {"text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM", "passed": false, "evidence": "matched: no transformers upper-bound pin found"}, {"text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout", "passed": true, "evidence": "scaledown_window=True, container_idle_timeout=False"}, {"text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version", "passed": false, "evidence": "slash-layout=False, double-underscore-layout=False"}, {"text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download", "passed": true, "evidence": "weight-download-split=True"}, {"text": "Includes a runnable smoke test step that verifies one inference call works end-to-end", "passed": true, "evidence": "smoke-test reference found"}]}, {"eval_id": 2, "eval_name": "debug-secret-not-found", "pass_count": 3, "total": 4, "pass_rate": 0.75, "duration_seconds": 45.3, "total_tokens": 19878, "expectations": [{"text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time", "passed": true, "evidence": "matched 'every secret'"}, {"text": "Provides a concrete fix: comment out / remove the unused secret line(s)", "passed": true, "evidence": "fix language found"}, {"text": "Shows the corrected code (with anthropic and google secrets removed or commented)", "passed": false, "evidence": "corrected code not clearly shown"}, {"text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)", "passed": true, "evidence": "placeholder not pushed as primary"}]}, {"eval_id": 3, "eval_name": "vllm-dependency-conflict", "pass_count": 2, "total": 5, "pass_rate": 0.4, "duration_seconds": 67.6, "total_tokens": 21611, "expectations": [{"text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)", "passed": true, "evidence": "matched 'version.{0,30}mismatch'"}, {"text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)", "passed": false, "evidence": "matched: no transformers upper-bound pin found"}, {"text": "Shows corrected pip_install code with the transformers pin", "passed": true, "evidence": "corrected pip_install shown"}, {"text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues", "passed": false, "evidence": "no explanation of WHY this happens"}, {"text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)", "passed": false, "evidence": "vllm downgrade suggested"}]}, {"eval_id": 4, "eval_name": "long-run-killed-by-sleep", "pass_count": 5, "total": 5, "pass_rate": 1.0, "duration_seconds": 70.8, "total_tokens": 20855, "expectations": [{"text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app", "passed": true, "evidence": "matched 'local.{0,30}disconnect'"}, {"text": "Primary fix: re-launch with modal run --detach", "passed": true, "evidence": "--detach recommended"}, {"text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)", "passed": true, "evidence": "progress tracking explained"}, {"text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get", "passed": true, "evidence": "volume recovery explained"}, {"text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)", "passed": true, "evidence": "per-trial flush pattern mentioned"}]}], "n_evals": 4}], "delta": {"pass_rate": 0.275, "duration": 8.900000000000006, "tokens": 8200.5}}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

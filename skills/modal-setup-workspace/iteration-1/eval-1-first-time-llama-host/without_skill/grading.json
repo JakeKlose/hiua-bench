@@ -1,0 +1,48 @@
+{
+  "eval_id": 1,
+  "condition": "without_skill",
+  "expectations": [
+    {
+      "text": "Mentions modal token new for first-time authentication",
+      "passed": true,
+      "evidence": "'modal token new' found"
+    },
+    {
+      "text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)",
+      "passed": true,
+      "evidence": "matched 'agree.{0,30}access'"
+    },
+    {
+      "text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret",
+      "passed": true,
+      "evidence": "HF_TOKEN=True, hf-token secret=True"
+    },
+    {
+      "text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM",
+      "passed": false,
+      "evidence": "matched: no transformers upper-bound pin found"
+    },
+    {
+      "text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout",
+      "passed": true,
+      "evidence": "scaledown_window=True, container_idle_timeout=False"
+    },
+    {
+      "text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version",
+      "passed": false,
+      "evidence": "slash-layout=False, double-underscore-layout=False"
+    },
+    {
+      "text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download",
+      "passed": true,
+      "evidence": "weight-download-split=True"
+    },
+    {
+      "text": "Includes a runnable smoke test step that verifies one inference call works end-to-end",
+      "passed": true,
+      "evidence": "smoke-test reference found"
+    }
+  ],
+  "pass_count": 6,
+  "total": 8
+}

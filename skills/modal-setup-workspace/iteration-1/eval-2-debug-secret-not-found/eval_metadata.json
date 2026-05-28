@@ -1,0 +1,11 @@
+{
+  "eval_id": 2,
+  "eval_name": "debug-secret-not-found",
+  "prompt": "My Modal run keeps failing immediately with NotFoundError('Secret anthropic-api-key not found in environment main'). But I'm not even using Claude in this run. Why is Modal complaining about Anthropic, and how do I fix it?",
+  "assertions": [
+    {"text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time"},
+    {"text": "Provides a concrete fix: comment out / remove the unused secret line(s)"},
+    {"text": "Shows the corrected code (with anthropic and google secrets removed or commented)"},
+    {"text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)"}
+  ]
+}

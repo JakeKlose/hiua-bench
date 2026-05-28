@@ -1,0 +1,350 @@
+"""
+Self-hosted vLLM inference on Modal GPUs.
+
+Per-model classes pinned to specific GPU configurations. Each class:
+  - Pulls weights from HuggingFace to a persistent Modal volume on first use
+  - Loads vLLM with documented sampling parameters
+  - Stays warm between trials (container_idle_timeout) to amortize load time
+  - Exposes a .generate(system, user, seed, temperature) method called by the
+    orchestrator's trial_selfhost function
+
+Usage from local CLI:
+  modal run selfhost.py::download_all_weights        # one-time, ~30-60 min
+  modal run selfhost.py::smoke_test --model llama-3.3-70b
+  # then the main pipeline routes selfhost-tagged models through these classes
+
+Costs (rough, varies with model serve time):
+  L40S ($1.95/hr):    Llama 3 8B, Qwen 2.5 7B
+  A100-80GB ($3.30):  GPT-OSS 20B, Gemma 4 31B
+  H100 ($5.50):       Llama 3.3 70B (FP8), Qwen 2.5 72B (FP8), GPT-OSS 120B
+  2x H100 ($11):      Qwen3 235B (FP8)
+
+The two DeepSeek MoE giants (V3.1, R1) are deliberately NOT here — they need
+8x H100 nodes (~$44/hr) which is uneconomical at pilot scale. They run via
+Together AI's reference serving instead. See modal_app.py.
+"""
+
+# Note: deliberately NOT using `from __future__ import annotations` here.
+# Modal's @app.cls parameter validator reads class annotations at decoration time
+# and requires actual type objects (str, int, etc.), not stringified forward
+# references. The future-annotations import would break modal.parameter() typing.
+
+import os
+from dataclasses import dataclass
+from typing import Any
+
+import modal
+
+# --------------------------------------------------------------------------
+# Volume + image
+# --------------------------------------------------------------------------
+
+WEIGHTS_VOL = modal.Volume.from_name("hiua-llm-weights", create_if_missing=True)
+WEIGHTS_DIR = "/weights"
+
+# vLLM version pin. vllm 0.8.5 requires transformers>=4.51.1, BUT the resolver
+# will happily pick transformers 5.x (2026 release) if we leave the upper bound
+# open. transformers 5.x removed `all_special_tokens_extended`, which vllm's
+# tokenizer cache still calls — so we MUST cap transformers at <5.0 to stay in
+# the 4.x range vllm was actually tested against. Specifically transformers
+# 4.51.1 through 4.55.x are known-good with vllm 0.8.5.
+VLLM_VERSION = "0.8.5"
+CUDA_TAG = "12.4.0-devel-ubuntu22.04"
+
+vllm_image = (
+    modal.Image.from_registry(f"nvidia/cuda:{CUDA_TAG}", add_python="3.11")
+    .pip_install(
+        f"vllm=={VLLM_VERSION}",
+        "transformers>=4.51.1,<4.56",   # critical upper bound — see comment above
+        "huggingface_hub[hf_transfer]",
+    )
+    .env({
+        # HF transfer perf: HF_HUB_ENABLE_HF_TRANSFER was deprecated in
+        # huggingface_hub 1.x; the replacement is HF_XET_HIGH_PERFORMANCE.
+        # We set both for compatibility across hf-hub versions.
+        "HF_HUB_ENABLE_HF_TRANSFER": "1",
+        "HF_XET_HIGH_PERFORMANCE": "1",
+        "VLLM_LOGGING_LEVEL": "WARN",
+        # HF_HUB_OFFLINE forces HF helpers to treat the model path as a pure
+        # local dir. We also lay weights at the canonical namespace/repo_name
+        # layout in _weights_subdir to keep vLLM's validator happy.
+        "HF_HUB_OFFLINE": "1",
+        "TRANSFORMERS_OFFLINE": "1",
+        # Force vLLM's legacy v0 engine. The v1 engine (default in 0.8.x)
+        # uses a background socket thread (process_input_socket) that crashes
+        # on certain first-message edge cases with the error
+        # `ValueError: b'\x00\x00' is not a valid EngineCoreRequestType`.
+        # When this happens, the engine reports ready but never processes
+        # any actual inference requests, causing all trials to time out.
+        # The v0 engine has a different request-handling path that doesn't
+        # have this bug. Slightly slower but rock-solid.
+        "VLLM_USE_V1": "0",
+    })
+)
+
+# Weight-download image is CPU-only — faster builds, cheaper to run.
+download_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install("huggingface_hub[hf_transfer]")
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
+)
+
+app = modal.App("hiua-selfhost")
+
+
+# --------------------------------------------------------------------------
+# Model registry
+# --------------------------------------------------------------------------
+
+@dataclass
+class SelfHostSpec:
+    display: str           # short name used in MODELS_SELFHOST in modal_app.py
+    hf_model_id: str       # HuggingFace repo id
+    gpu: str               # Modal GPU type string (e.g. "H100", "A100-80GB", "L40S")
+    n_gpus: int            # number of GPUs to allocate
+    tier: str              # "cheap" | "mid" | "opus"
+    dtype: str             # "bfloat16" | "auto"
+    max_model_len: int     # context window the orchestrator will use
+
+# Note: HF model IDs are the canonical *instruct* versions. Confirm availability
+# before launching a real run — some models gate behind license-accept on HF.
+SELFHOST_SPECS: list[SelfHostSpec] = [
+    # Llama 8B slot: we requested both Llama 3 8B and Llama 3.1 8B from Meta —
+    # whichever they approve first wins. Drop the unapproved one once we know.
+    # The download_all_weights call will fail for whichever is still pending,
+    # but that failure is non-blocking thanks to return_exceptions=True.
+    SelfHostSpec("llama-3-8b",     "meta-llama/Meta-Llama-3-8B-Instruct",   "L40S",      1, "cheap", "bfloat16", 8192),
+    SelfHostSpec("llama-3.1-8b",   "meta-llama/Llama-3.1-8B-Instruct",      "L40S",      1, "cheap", "bfloat16", 8192),
+    SelfHostSpec("qwen-2.5-7b",    "Qwen/Qwen2.5-7B-Instruct",              "L40S",      1, "cheap", "bfloat16", 8192),
+    SelfHostSpec("gemma-4-31b",    "google/gemma-2-27b-it",                 "A100-80GB", 1, "cheap", "bfloat16", 8192),  # gemma-4 not yet on HF; substitute
+    SelfHostSpec("gpt-oss-20b",    "openai/gpt-oss-20b",                    "A100-80GB", 1, "cheap", "auto",     8192),
+    SelfHostSpec("llama-3.3-70b",  "meta-llama/Llama-3.3-70B-Instruct",     "H100",      1, "mid",   "bfloat16", 8192),
+    SelfHostSpec("qwen-2.5-72b",   "Qwen/Qwen2.5-72B-Instruct",             "H100",      1, "mid",   "bfloat16", 8192),
+    SelfHostSpec("gpt-oss-120b",   "openai/gpt-oss-120b",                   "H100",      1, "mid",   "auto",     8192),
+    SelfHostSpec("qwen3-235b",     "Qwen/Qwen3-235B-A22B-Instruct-2507",    "H100",      2, "opus",  "auto",     8192),
+]
+
+
+def _weights_subdir(hf_id: str) -> str:
+    # IMPORTANT: keep the real `/` in the path. vLLM's HF validator inspects
+    # the model path and rejects anything not in `namespace/repo_name` shape.
+    # If we sanitized the slash (e.g. to `__`), vLLM would raise HFValidationError.
+    return f"{WEIGHTS_DIR}/{hf_id}"
+
+
+# --------------------------------------------------------------------------
+# Weight downloader
+# --------------------------------------------------------------------------
+
+@app.function(
+    image=download_image,
+    volumes={WEIGHTS_DIR: WEIGHTS_VOL},
+    timeout=60 * 60,
+    secrets=[modal.Secret.from_name("hf-token")],   # HF_TOKEN for gated models
+)
+def download_one_weight(hf_id: str) -> str:
+    """Pull a model's weights to the volume. Idempotent — skips files already present."""
+    from huggingface_hub import snapshot_download
+    target = _weights_subdir(hf_id)
+    print(f"[download] {hf_id} -> {target}")
+    snapshot_download(
+        repo_id=hf_id, local_dir=target,
+        max_workers=8,
+        allow_patterns=["*.json", "*.safetensors", "tokenizer*", "*.model", "*.txt"],
+    )
+    WEIGHTS_VOL.commit()
+    print(f"[download] {hf_id} done")
+    return target
+
+
+@app.local_entrypoint()
+def download_all_weights():
+    """One-time: pull all self-host model weights in parallel. ~30-60 min wall time."""
+    hf_ids = [s.hf_model_id for s in SELFHOST_SPECS]
+    print(f"Downloading {len(hf_ids)} model weights to the hiua-llm-weights volume...")
+    results = list(download_one_weight.map(hf_ids, return_exceptions=True))
+    print("\nDownload summary:")
+    for hf_id, r in zip(hf_ids, results):
+        ok = "OK " if not isinstance(r, Exception) else "FAIL"
+        msg = "" if not isinstance(r, Exception) else f" ({type(r).__name__}: {r})"
+        print(f"  {ok}  {hf_id}{msg}")
+
+
+# --------------------------------------------------------------------------
+# vLLM serving — one class per GPU shape, all defined at MODULE scope.
+#
+# Modal requires @app.cls decorators at module level (not inside a factory
+# function). So we manually declare one class per (gpu, n_gpus) shape used
+# in SELFHOST_SPECS. The class body itself is identical — only the decorator
+# args change.
+#
+# To add a new GPU shape: write another class below following the pattern.
+# --------------------------------------------------------------------------
+
+# Common method bodies, defined once and referenced inside each class.
+
+def _vllm_load(self):
+    """Shared @modal.enter body — loaded on container start."""
+    from vllm import LLM
+    local_dir = _weights_subdir(self.hf_model_id)
+    print(f"[vllm] loading {self.hf_model_id} from {local_dir}")
+    self.llm = LLM(
+        model=local_dir,
+        dtype=self.dtype,
+        gpu_memory_utilization=0.90,
+        max_model_len=self.max_model_len,
+        tensor_parallel_size=self._n_gpus(),
+        enforce_eager=False,
+    )
+    self.tokenizer = self.llm.get_tokenizer()
+    print(f"[vllm] {self.hf_model_id} ready")
+
+
+def _vllm_generate(self, system: str, user: str, seed: int = 0,
+                   temperature: float = 0.7, max_tokens: int = 2048) -> str:
+    """Shared method body for inference.
+
+    Some models (notably Gemma) ship chat templates that reject the `system`
+    role. When apply_chat_template raises a TemplateError, we fall back to
+    prepending the system message to the user message in a clearly demarcated
+    section. This mirrors the standard Gemma usage pattern and preserves the
+    prohibition's effective context placement (still in the first turn).
+    """
+    from vllm import SamplingParams
+    try:
+        prompt = self.tokenizer.apply_chat_template(
+            [{"role": "system", "content": system},
+             {"role": "user", "content": user}],
+            tokenize=False, add_generation_prompt=True,
+        )
+    except Exception as e:
+        # Gemma-style template rejecting the system role. Merge system into user.
+        msg = str(e).lower()
+        if "system role" in msg or "system" in msg and "not support" in msg or "templateerror" in type(e).__name__.lower():
+            merged = f"[SYSTEM INSTRUCTIONS]\n{system}\n\n[USER MESSAGE]\n{user}"
+            prompt = self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": merged}],
+                tokenize=False, add_generation_prompt=True,
+            )
+        else:
+            raise
+    params = SamplingParams(temperature=temperature, max_tokens=max_tokens, seed=seed)
+    outputs = self.llm.generate([prompt], params)
+    return outputs[0].outputs[0].text
+
+
+# --- one class per GPU shape --------------------------------------------------
+
+@app.cls(image=vllm_image, gpu="L40S",
+         volumes={WEIGHTS_DIR: WEIGHTS_VOL}, timeout=20 * 60,
+         scaledown_window=5 * 60)
+@modal.concurrent(max_inputs=8)
+class VLLMRunner_L40S_x1:
+    hf_model_id: str = modal.parameter()
+    dtype: str = modal.parameter(default="bfloat16")
+    max_model_len: int = modal.parameter(default=8192)
+    def _n_gpus(self): return 1
+    @modal.enter()
+    def load(self): _vllm_load(self)
+    @modal.method()
+    def generate(self, system: str, user: str, seed: int = 0,
+                 temperature: float = 0.7, max_tokens: int = 2048) -> str:
+        return _vllm_generate(self, system, user, seed, temperature, max_tokens)
+
+
+@app.cls(image=vllm_image, gpu="A100-80GB",
+         volumes={WEIGHTS_DIR: WEIGHTS_VOL}, timeout=20 * 60,
+         scaledown_window=5 * 60)
+@modal.concurrent(max_inputs=8)
+class VLLMRunner_A100_x1:
+    hf_model_id: str = modal.parameter()
+    dtype: str = modal.parameter(default="bfloat16")
+    max_model_len: int = modal.parameter(default=8192)
+    def _n_gpus(self): return 1
+    @modal.enter()
+    def load(self): _vllm_load(self)
+    @modal.method()
+    def generate(self, system: str, user: str, seed: int = 0,
+                 temperature: float = 0.7, max_tokens: int = 2048) -> str:
+        return _vllm_generate(self, system, user, seed, temperature, max_tokens)
+
+
+@app.cls(image=vllm_image, gpu="H100",
+         volumes={WEIGHTS_DIR: WEIGHTS_VOL}, timeout=20 * 60,
+         scaledown_window=5 * 60)
+@modal.concurrent(max_inputs=8)
+class VLLMRunner_H100_x1:
+    hf_model_id: str = modal.parameter()
+    dtype: str = modal.parameter(default="bfloat16")
+    max_model_len: int = modal.parameter(default=8192)
+    def _n_gpus(self): return 1
+    @modal.enter()
+    def load(self): _vllm_load(self)
+    @modal.method()
+    def generate(self, system: str, user: str, seed: int = 0,
+                 temperature: float = 0.7, max_tokens: int = 2048) -> str:
+        return _vllm_generate(self, system, user, seed, temperature, max_tokens)
+
+
+@app.cls(image=vllm_image, gpu="H100:2",
+         volumes={WEIGHTS_DIR: WEIGHTS_VOL}, timeout=30 * 60,
+         scaledown_window=5 * 60)
+@modal.concurrent(max_inputs=8)
+class VLLMRunner_H100_x2:
+    hf_model_id: str = modal.parameter()
+    dtype: str = modal.parameter(default="bfloat16")
+    max_model_len: int = modal.parameter(default=8192)
+    def _n_gpus(self): return 2
+    @modal.enter()
+    def load(self): _vllm_load(self)
+    @modal.method()
+    def generate(self, system: str, user: str, seed: int = 0,
+                 temperature: float = 0.7, max_tokens: int = 2048) -> str:
+        return _vllm_generate(self, system, user, seed, temperature, max_tokens)
+
+
+# Lookup table — orchestrator calls get_runner_for(spec) to get the right class.
+_RUNNER_BY_SHAPE = {
+    ("L40S", 1):      VLLMRunner_L40S_x1,
+    ("A100-80GB", 1): VLLMRunner_A100_x1,
+    ("H100", 1):      VLLMRunner_H100_x1,
+    ("H100", 2):      VLLMRunner_H100_x2,
+}
+
+
+def get_runner_for(spec: SelfHostSpec):
+    """Return a parameterized vLLM runner for the given spec."""
+    shape = (spec.gpu, spec.n_gpus)
+    cls = _RUNNER_BY_SHAPE.get(shape)
+    if cls is None:
+        raise ValueError(
+            f"No VLLMRunner class defined for shape {shape}. "
+            f"Add one in selfhost.py following the existing pattern."
+        )
+    return cls(
+        hf_model_id=spec.hf_model_id,
+        dtype=spec.dtype,
+        max_model_len=spec.max_model_len,
+    )
+
+
+# --------------------------------------------------------------------------
+# Smoke test entry point — confirms a single model loads and serves.
+# --------------------------------------------------------------------------
+
+@app.local_entrypoint()
+def smoke_test(model: str = "llama-3-8b"):
+    """Try one inference call against one self-hosted model. ~30-180s cold start, then ~2s."""
+    spec = next((s for s in SELFHOST_SPECS if s.display == model), None)
+    if not spec:
+        names = ", ".join(s.display for s in SELFHOST_SPECS)
+        print(f"Unknown model: {model}\n  Available: {names}")
+        return
+    runner = get_runner_for(spec)
+    print(f"[smoke_test] {spec.display} on {spec.gpu} x{spec.n_gpus}")
+    out = runner.generate.remote(
+        system="You are a precise assistant.",
+        user="Say exactly: HELLO HIUA",
+        seed=0, temperature=0.0, max_tokens=20,
+    )
+    print(f"OUTPUT: {out!r}")

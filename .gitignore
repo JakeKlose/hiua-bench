@@ -1,0 +1,79 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+env/
+.env
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Modal local state
+.modal/
+.modal.toml
+
+# OS junk
+Thumbs.db
+desktop.ini
+
+# Course-specific files NOT for the HIUA repo
+# (these live in the parent course folder; we don't want them in the research repo)
+quiz2_*
+lecture_slides/
+discussions/
+notes_and_handbook/
+
+# Logs
+*.log
+nohup.out
+dev_selfhost.log
+
+# Large LaTeX build artifacts (keep .tex source, drop the build outputs)
+paper_drafts/**/*.aux
+paper_drafts/**/*.log
+paper_drafts/**/*.out
+paper_drafts/**/*.synctex.gz
+paper_drafts/**/*.fdb_latexmk
+paper_drafts/**/*.fls
+paper_drafts/**/*.bbl
+paper_drafts/**/*.blg
+paper_drafts/**/*.toc
+paper_drafts/**/*.lof
+paper_drafts/**/*.lot
+paper_drafts/**/*.nav
+paper_drafts/**/*.snm
+
+# API keys and secrets — defensive, even though none are committed to source
+*.env
+.env.*
+secrets.json
+*_api_key*
+*credentials*
+
+# Local experiment scratch
+experiment/.modal/
+experiment/*.bak
+
+# Local-only files (anything ending in .local stays on disk, never committed)
+*.local

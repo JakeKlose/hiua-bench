@@ -1,0 +1,343 @@
+{
+  "skill_name": "modal-setup",
+  "iteration": 1,
+  "configurations": [
+    {
+      "condition": "with_skill",
+      "pass_rate_mean": 1.0,
+      "pass_rate_stddev": 0.0,
+      "duration_mean": 79.95,
+      "duration_stddev": 62.74442870353777,
+      "tokens_mean": 29885,
+      "tokens_stddev": 8951.142236236297,
+      "per_eval": [
+        {
+          "eval_id": 1,
+          "eval_name": "first-time-llama-host",
+          "pass_count": 8,
+          "total": 8,
+          "pass_rate": 1.0,
+          "duration_seconds": 172.3,
+          "total_tokens": 43291,
+          "expectations": [
+            {
+              "text": "Mentions modal token new for first-time authentication",
+              "passed": true,
+              "evidence": "'modal token new' found"
+            },
+            {
+              "text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)",
+              "passed": true,
+              "evidence": "matched 'accept.{0,30}license'"
+            },
+            {
+              "text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret",
+              "passed": true,
+              "evidence": "HF_TOKEN=True, hf-token secret=True"
+            },
+            {
+              "text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM",
+              "passed": true,
+              "evidence": "matched: transformers>=4.51.1` and pip will happily pick 5.x which removed\n#     methods that vllm still calls. cap at <4.5"
+            },
+            {
+              "text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout",
+              "passed": true,
+              "evidence": "scaledown_window=True, container_idle_timeout=False"
+            },
+            {
+              "text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version",
+              "passed": true,
+              "evidence": "slash-layout=True, double-underscore-layout=False"
+            },
+            {
+              "text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download",
+              "passed": true,
+              "evidence": "weight-download-split=True"
+            },
+            {
+              "text": "Includes a runnable smoke test step that verifies one inference call works end-to-end",
+              "passed": true,
+              "evidence": "smoke-test reference found"
+            }
+          ]
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "debug-secret-not-found",
+          "pass_count": 4,
+          "total": 4,
+          "pass_rate": 1.0,
+          "duration_seconds": 37.7,
+          "total_tokens": 25080,
+          "expectations": [
+            {
+              "text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time",
+              "passed": true,
+              "evidence": "matched 'build.?time'"
+            },
+            {
+              "text": "Provides a concrete fix: comment out / remove the unused secret line(s)",
+              "passed": true,
+              "evidence": "fix language found"
+            },
+            {
+              "text": "Shows the corrected code (with anthropic and google secrets removed or commented)",
+              "passed": true,
+              "evidence": "corrected code shown"
+            },
+            {
+              "text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)",
+              "passed": true,
+              "evidence": "placeholder not pushed as primary"
+            }
+          ]
+        },
+        {
+          "eval_id": 3,
+          "eval_name": "vllm-dependency-conflict",
+          "pass_count": 5,
+          "total": 5,
+          "pass_rate": 1.0,
+          "duration_seconds": 43.9,
+          "total_tokens": 25050,
+          "expectations": [
+            {
+              "text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)",
+              "passed": true,
+              "evidence": "matched 'version.{0,30}mismatch'"
+            },
+            {
+              "text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)",
+              "passed": true,
+              "evidence": "matched: transformers>=4.51.1,<4.5"
+            },
+            {
+              "text": "Shows corrected pip_install code with the transformers pin",
+              "passed": true,
+              "evidence": "corrected pip_install shown"
+            },
+            {
+              "text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues",
+              "passed": true,
+              "evidence": "matched 'open.{0,30}upper bound'"
+            },
+            {
+              "text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)",
+              "passed": true,
+              "evidence": "downgrade NOT suggested"
+            }
+          ]
+        },
+        {
+          "eval_id": 4,
+          "eval_name": "long-run-killed-by-sleep",
+          "pass_count": 5,
+          "total": 5,
+          "pass_rate": 1.0,
+          "duration_seconds": 65.9,
+          "total_tokens": 26119,
+          "expectations": [
+            {
+              "text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app",
+              "passed": true,
+              "evidence": "matched 'local.{0,30}disconnect'"
+            },
+            {
+              "text": "Primary fix: re-launch with modal run --detach",
+              "passed": true,
+              "evidence": "--detach recommended"
+            },
+            {
+              "text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)",
+              "passed": true,
+              "evidence": "progress tracking explained"
+            },
+            {
+              "text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get",
+              "passed": true,
+              "evidence": "volume recovery explained"
+            },
+            {
+              "text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)",
+              "passed": true,
+              "evidence": "per-trial flush pattern mentioned"
+            }
+          ]
+        }
+      ],
+      "n_evals": 4
+    },
+    {
+      "condition": "without_skill",
+      "pass_rate_mean": 0.725,
+      "pass_rate_stddev": 0.24664414311581237,
+      "duration_mean": 71.05,
+      "duration_stddev": 22.673993913732975,
+      "tokens_mean": 21684.5,
+      "tokens_stddev": 1940.6446523427896,
+      "per_eval": [
+        {
+          "eval_id": 1,
+          "eval_name": "first-time-llama-host",
+          "pass_count": 6,
+          "total": 8,
+          "pass_rate": 0.75,
+          "duration_seconds": 100.5,
+          "total_tokens": 24394,
+          "expectations": [
+            {
+              "text": "Mentions modal token new for first-time authentication",
+              "passed": true,
+              "evidence": "'modal token new' found"
+            },
+            {
+              "text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)",
+              "passed": true,
+              "evidence": "matched 'agree.{0,30}access'"
+            },
+            {
+              "text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret",
+              "passed": true,
+              "evidence": "HF_TOKEN=True, hf-token secret=True"
+            },
+            {
+              "text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM",
+              "passed": false,
+              "evidence": "matched: no transformers upper-bound pin found"
+            },
+            {
+              "text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout",
+              "passed": true,
+              "evidence": "scaledown_window=True, container_idle_timeout=False"
+            },
+            {
+              "text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version",
+              "passed": false,
+              "evidence": "slash-layout=False, double-underscore-layout=False"
+            },
+            {
+              "text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download",
+              "passed": true,
+              "evidence": "weight-download-split=True"
+            },
+            {
+              "text": "Includes a runnable smoke test step that verifies one inference call works end-to-end",
+              "passed": true,
+              "evidence": "smoke-test reference found"
+            }
+          ]
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "debug-secret-not-found",
+          "pass_count": 3,
+          "total": 4,
+          "pass_rate": 0.75,
+          "duration_seconds": 45.3,
+          "total_tokens": 19878,
+          "expectations": [
+            {
+              "text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time",
+              "passed": true,
+              "evidence": "matched 'every secret'"
+            },
+            {
+              "text": "Provides a concrete fix: comment out / remove the unused secret line(s)",
+              "passed": true,
+              "evidence": "fix language found"
+            },
+            {
+              "text": "Shows the corrected code (with anthropic and google secrets removed or commented)",
+              "passed": false,
+              "evidence": "corrected code not clearly shown"
+            },
+            {
+              "text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)",
+              "passed": true,
+              "evidence": "placeholder not pushed as primary"
+            }
+          ]
+        },
+        {
+          "eval_id": 3,
+          "eval_name": "vllm-dependency-conflict",
+          "pass_count": 2,
+          "total": 5,
+          "pass_rate": 0.4,
+          "duration_seconds": 67.6,
+          "total_tokens": 21611,
+          "expectations": [
+            {
+              "text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)",
+              "passed": true,
+              "evidence": "matched 'version.{0,30}mismatch'"
+            },
+            {
+              "text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)",
+              "passed": false,
+              "evidence": "matched: no transformers upper-bound pin found"
+            },
+            {
+              "text": "Shows corrected pip_install code with the transformers pin",
+              "passed": true,
+              "evidence": "corrected pip_install shown"
+            },
+            {
+              "text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues",
+              "passed": false,
+              "evidence": "no explanation of WHY this happens"
+            },
+            {
+              "text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)",
+              "passed": false,
+              "evidence": "vllm downgrade suggested"
+            }
+          ]
+        },
+        {
+          "eval_id": 4,
+          "eval_name": "long-run-killed-by-sleep",
+          "pass_count": 5,
+          "total": 5,
+          "pass_rate": 1.0,
+          "duration_seconds": 70.8,
+          "total_tokens": 20855,
+          "expectations": [
+            {
+              "text": "Identifies that modal run (without --detach) ties app lifecycle to the local CLI, so client disconnect kills the app",
+              "passed": true,
+              "evidence": "matched 'local.{0,30}disconnect'"
+            },
+            {
+              "text": "Primary fix: re-launch with modal run --detach",
+              "passed": true,
+              "evidence": "--detach recommended"
+            },
+            {
+              "text": "Explains how to track progress for a detached run (Modal dashboard URL or modal app logs)",
+              "passed": true,
+              "evidence": "progress tracking explained"
+            },
+            {
+              "text": "Addresses recovery: if the orchestrator wrote+committed to a volume per-trial, partial results survive and can be pulled with modal volume get",
+              "passed": true,
+              "evidence": "volume recovery explained"
+            },
+            {
+              "text": "Mentions the per-trial flush + commit pattern as a prevention measure (resilience to preemption AND disconnect)",
+              "passed": true,
+              "evidence": "per-trial flush pattern mentioned"
+            }
+          ]
+        }
+      ],
+      "n_evals": 4
+    }
+  ],
+  "delta": {
+    "pass_rate": 0.275,
+    "duration": 8.900000000000006,
+    "tokens": 8200.5
+  }
+}

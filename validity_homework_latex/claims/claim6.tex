@@ -1,0 +1,55 @@
+\section{Claim \#6}
+
+\paragraph{Claim Statement} ``Sora and similar video generators have learned an implicit physical world model from data'' \citep{openai2024sora}.
+
+\paragraph{Construct Identification} The claim invokes ``implicit physical world model'', defined as a construct denoting an internal representation of physical regularities sufficient to support counterfactual prediction and generalization beyond the training distribution. The AI Construct Lexis \citep{aiconstructlexis} treats ``world model'' as an aspirational construct in generative AI that is poorly anchored and easily conflated with surface coherence. The criterion offered is video generation quality rated by humans, which probes pixel coherence rather than the underlying physical-law construct.
+
+\subsection{Content Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} The OpenAI report illustrates Sora's capabilities mainly with qualitative examples of surface coherence and explicitly frames the report as qualitative evaluation. Systematic content sampling of physical scenarios such as object collisions, fluid dynamics, conservation laws, and occlusion-and-reappearance is absent. \citet{kang2024video} construct exactly such a content-mapped test bed and find systematic failures. There is a systemic gap that human raters of ``plausibility'' do not probe physics. They probe pixel coherence, and the human visual system is poorly calibrated to subtle physics violations. Content sampling of the implied construct domain is therefore weak \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Construct Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} \textbf{[MOST RELEVANT DIMENSION]} The claim rests on whether Sora has acquired internal physics knowledge or merely pixel-level statistical regularities. \emph{Structural validity} is not met because there is no evidence the model's internal state encodes physics-relevant variables such as mass, velocity, or force as separable representations. \emph{Convergent validity} is not met because outputs are not compared against explicit physics simulators on shared inputs, so we cannot establish that Sora's predictions agree with physics-grounded measures of the same construct. \emph{Discriminant validity} is the central concern. \citet{kang2024video} construct the canonical discriminant test by varying object configurations out of distribution, and Sora-like video-generation models fail to generalize to those settings even when the model is scaled up. This is the signature of pattern-matching in pixel space rather than learned physical laws \citep{salaudeen2025measurement}. The measurement (visual coherence) and the construct (physical world model) are not coupled by a stable mapping.
+\end{itemize}
+
+\subsection{Criterion / Predictive Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} The cited evidence does not supply predictive evidence that Sora is a predictive physics tool. There is no reported result showing that Sora's next-frame prediction matches an ODE solver, and there is no downstream physics-relevant task it supports. The ``world simulator'' framing is forward-looking and unsubstantiated. Concurrent evidence is strong only for the wrong criterion: human raters score Sora highly for visual coherence \citep{openai2024sora}, but humans systematically miss subtle physics violations, so concurrent agreement on plausibility cannot license the construct claim about physics \citep{kang2024video,salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Consequential Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} If ``world model'' framing is taken literally, downstream uses such as scientific simulation, design tools, embodied AI training data, and robotics policies trained on synthetic video inherit physics-violation risk. Consequential validity is weak because the marketing framing invites high-stakes deployments in scientific and engineering settings where physics violations would propagate into prototypes or policies. The empirical evidence from controlled video-generation models \citep{kang2024video} cuts against the construct claim that these deployment scenarios would rely on \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{External validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} The training distribution is internet videos, which are biased toward indoor scenes, common objects, and common motions. Generalization to unusual configurations, extreme physics regimes, or out-of-distribution scenarios is unsupported, and controlled video-generation tests show poor out-of-distribution physical generalization \citep{kang2024video}. The ``world'' in ``world model'' is in fact a narrow slice of the training distribution. The implied generalization to a broad space of physical scenarios is not supported, and scaling does not appear to close the gap \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Overall Validity Judgment}
+\begin{itemize}
+    \item \textbf{Rating:} Not Valid
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} Sora undoubtedly produces visually striking, temporally coherent videos and earns strong human-preference ratings for plausibility. However, empirical tests of the underlying construct in controlled settings \citep{kang2024video} reveal systematic failures on out-of-distribution physics scenarios. This is the precise discriminant signature of pattern-matching in pixel space rather than the acquisition of physical laws. The ``world simulator'' framing makes an aggressive construct claim that visual-coherence evidence cannot support. Allowing this claim to persist creates consequential validity hazards, inviting engineers to train robotic policies or scientific simulations on synthetic data that looks correct but violates fundamental physics. \\
+    \emph{Defensible reformulation}: ``Sora generates visually coherent and temporally consistent videos that are rated favorably by human evaluators for plausibility. Controlled tests of physical generalization \citep{kang2024video} show systematic failure on out-of-distribution physical scenarios, suggesting that visual coherence should not be read as acquisition of an internal physical model.''
+    \item \textbf{Peer Prediction (BTS):}
+
+    \begin{tabular}{ll}
+        Valid as stated: & 5\% \\
+        Partially valid: & 35\% \\
+        Not valid: & 60\% \\
+        \end{tabular}\\[4pt]
+\end{itemize}

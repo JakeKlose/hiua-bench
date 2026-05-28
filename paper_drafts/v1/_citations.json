@@ -1,0 +1,565 @@
+{
+  "schema_version": "1.0",
+  "description": "Verified bibliography for the hallucination-induced unauthorized action paper. Every entry has been verified in this session via WebSearch (existence/topic) or WebFetch (numerical/methodological claims).",
+  "sources": [
+    {
+      "key": "agentharm2024",
+      "url": "https://arxiv.org/abs/2410.09024",
+      "title": "AgentHarm: A Benchmark for Measuring Harmfulness of LLM Agents",
+      "authors": "Andriushchenko, Souly, Dziemian, Duenas, Lin, Wang, Hendrycks, Zou, Kolter, Fredrikson, Winsor, Wynne, Gal, Davies",
+      "year": 2024,
+      "venue": "ICLR 2025",
+      "verified_via": "fetch",
+      "claims_supported": [
+        "110 explicitly malicious agent tasks (440 with augmentations)",
+        "11 harm categories including fraud, cybercrime, harassment",
+        "Leading LLMs are surprisingly compliant with malicious agent requests without jailbreaking",
+        "Universal jailbreak templates effectively jailbreak agents while retaining capabilities"
+      ]
+    },
+    {
+      "key": "toolemu2024",
+      "url": "https://arxiv.org/abs/2309.15817",
+      "title": "Identifying the Risks of LM Agents with an LM-Emulated Sandbox (ToolEmu)",
+      "authors": "Ruan, Dong, et al.",
+      "year": 2024,
+      "venue": "ICLR 2024 Spotlight",
+      "verified_via": "search",
+      "claims_supported": [
+        "LM-emulated sandbox covering 36 high-stakes toolkits / 144 test cases",
+        "Even the safest LM agent fails 23.9% of the time per automatic evaluator",
+        "Human evaluation shows 68.8% of identified failures would be valid real-world failures"
+      ]
+    },
+    {
+      "key": "rjudge2024",
+      "url": "https://arxiv.org/abs/2401.10019",
+      "title": "R-Judge: Benchmarking Safety Risk Awareness for LLM Agents",
+      "authors": "Yuan, He, Dong, Wang, Zhao, Xia, Xu, Zhou, Li, Zhang, Wang, Liu",
+      "year": 2024,
+      "venue": "EMNLP Findings 2024",
+      "verified_via": "fetch",
+      "claims_supported": [
+        "569 multi-turn agent interaction records",
+        "27 key risk scenarios spanning 5 application categories and 10 risk types",
+        "Best-performing model (GPT-4o) achieves 74.42%; no other models significantly exceed random",
+        "R-Judge is a meta-evaluation: LLM judging safety from agent interaction records, not agent-side prevention"
+      ]
+    },
+    {
+      "key": "injecagent2024",
+      "url": "https://arxiv.org/abs/2403.02691",
+      "title": "InjecAgent: Benchmarking Indirect Prompt Injections in Tool-Integrated Large Language Model Agents",
+      "authors": "Zhan, Liang, Ying, Kang",
+      "year": 2024,
+      "venue": "ACL Findings 2024",
+      "verified_via": "fetch",
+      "claims_supported": [
+        "1,054 test cases covering 17 user tools and 62 attacker tools",
+        "ReAct-prompted GPT-4 vulnerable to indirect prompt injection 24% of the time",
+        "Hacking-prompt reinforcement nearly doubles attack success rate"
+      ]
+    },
+    {
+      "key": "safeagentbench2024",
+      "url": "https://arxiv.org/abs/2412.13178",
+      "title": "SafeAgentBench: A Benchmark for Safe Task Planning of Embodied LLM Agents",
+      "authors": "Yin, Pang, et al.",
+      "year": 2024,
+      "venue": "arXiv 2024",
+      "verified_via": "search",
+      "claims_supported": [
+        "750 task dataset covering 10 potential hazards and 3 task types",
+        "Best baseline gets 69% success on safe tasks but only 5% rejection on hazardous tasks",
+        "First comprehensive benchmark for safety-aware embodied LLM task planning"
+      ]
+    },
+    {
+      "key": "robopair2024",
+      "url": "https://arxiv.org/abs/2410.13691",
+      "title": "Jailbreaking LLM-Controlled Robots (RoboPAIR)",
+      "authors": "Robey, Ravichandran, Kumar, Hassani, Pappas",
+      "year": 2024,
+      "venue": "arXiv 2024 / blog.ml.cmu.edu",
+      "verified_via": "search",
+      "claims_supported": [
+        "Algorithmic jailbreak of LLM-controlled robots demonstrated on NVIDIA Dolphins, Clearpath Jackal (GPT-4o), Unitree Go2 (GPT-3.5)",
+        "Often achieves 100% attack success rates eliciting physical harmful actions",
+        "Risks of jailbroken LLMs extend beyond text generation to physical damage"
+      ]
+    },
+    {
+      "key": "halluagentsurvey2025",
+      "url": "https://arxiv.org/abs/2509.18970",
+      "title": "LLM-based Agents Suffer from Hallucinations: A Survey of Taxonomy, Methods, and Directions",
+      "authors": "(survey, multi-author)",
+      "year": 2025,
+      "venue": "arXiv 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "First comprehensive survey of hallucinations in LLM-based agents",
+        "Proposes a stage-based taxonomy spanning the agent workflow (brain/perception/action)",
+        "Examines 18 triggering causes of agent hallucinations"
+      ]
+    },
+    {
+      "key": "hallulens2025",
+      "url": "https://arxiv.org/abs/2504.17550",
+      "title": "HalluLens: LLM Hallucination Benchmark",
+      "authors": "Bang, Ji, Schelten, Hartshorn, Fowler, Zhang, Cancedda, Fung",
+      "year": 2025,
+      "venue": "arXiv 2025 (FAIR/Meta)",
+      "verified_via": "search",
+      "claims_supported": [
+        "Distinguishes extrinsic from intrinsic hallucinations",
+        "Dynamically generates evaluation data so the test set is not leaked",
+        "Disentangles hallucination from factuality"
+      ]
+    },
+    {
+      "key": "agentif2025",
+      "url": "https://arxiv.org/abs/2505.16944",
+      "title": "AGENTIF: Benchmarking Instruction Following of Large Language Models in Agentic Scenarios",
+      "authors": "(Tsinghua / Zhipu AI)",
+      "year": 2025,
+      "venue": "arXiv 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "Constructed from 50 real-world agentic applications",
+        "Instructions average 1,723 words with maximum 15,630; average 11.9 constraints per instruction",
+        "Three constraint types: formatting, semantic, tool",
+        "707 manually annotated instructions",
+        "Best model follows fewer than 30% of instructions perfectly"
+      ]
+    },
+    {
+      "key": "hsp2025",
+      "url": "https://arxiv.org/abs/2506.02357",
+      "title": "Evaluating LLM Agent Adherence to Hierarchical Safety Principles: A Lightweight Benchmark for Probing Foundational Controllability Components",
+      "authors": "Potham, R.",
+      "year": 2025,
+      "venue": "ICML 2025 Technical AI Governance Workshop submission",
+      "verified_via": "search",
+      "claims_supported": [
+        "Lightweight benchmark for LLM agent adherence to a high-level safety principle under conflicting task instructions",
+        "Evaluation of six LLMs reveals a quantifiable 'cost of compliance' and 'illusion of compliance'",
+        "Current approaches lack consistency required for reliable safety governance"
+      ]
+    },
+    {
+      "key": "armor2026",
+      "url": "https://arxiv.org/abs/2605.00245",
+      "title": "ARMOR 2025: A Military-Aligned Benchmark for Evaluating Large Language Model Safety Beyond Civilian Contexts",
+      "authors": "(multi-author)",
+      "year": 2026,
+      "venue": "arXiv 2026 (Apr 30)",
+      "verified_via": "search",
+      "claims_supported": [
+        "12-category taxonomy and 519 doctrinally grounded prompts evaluated across 21 commercial LLMs",
+        "Two failure modes: hallucinating rules/inventing constraints, and refusing lawful scoped requests",
+        "Concludes deploying general-purpose LLMs for military decision support without additional controls is premature"
+      ]
+    },
+    {
+      "key": "m2m2025",
+      "url": "https://arxiv.org/abs/2505.10573",
+      "title": "Measurement to Meaning: A Validity-Centered Framework for AI Evaluation",
+      "authors": "Salaudeen, Reuel, Ahmed, Bedi, Robertson, Sundar, Domingue, Wang, Koyejo",
+      "year": 2025,
+      "venue": "arXiv 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "Argues for validity-centered framework distinguishing scope of evaluative claims supported by measurements",
+        "Recognizes that imperfect measurements can support better-scoped (narrower) valid claims",
+        "Helps determine whether performance on a benchmark indicates a narrow or broad capability"
+      ]
+    },
+    {
+      "key": "nomologicalnetworks2026",
+      "url": "https://arxiv.org/abs/2603.15121",
+      "title": "Establishing Construct Validity in LLM Capability Benchmarks Requires Nomological Networks",
+      "authors": "Freiesleben",
+      "year": 2026,
+      "venue": "arXiv 2026 (Mar 16)",
+      "verified_via": "search",
+      "claims_supported": [
+        "Contrasts three construct validity frameworks (Cronbach-Meehl nomological, Messick-Kane inferential, Borsboom causal)",
+        "Argues nomological account provides most suitable foundation for LLM capability research",
+        "Provides middle ground: less ontologically committed than causal account, more substantive than inferential account"
+      ]
+    },
+    {
+      "key": "driftbench2026",
+      "url": "https://arxiv.org/abs/2604.28031",
+      "title": "Models Recall What They Violate: Constraint Adherence in Multi-Turn LLM Ideation (DriftBench)",
+      "authors": "(multi-author)",
+      "year": 2026,
+      "venue": "arXiv 2026",
+      "verified_via": "search",
+      "claims_supported": [
+        "2,146 scored benchmark runs across 7 models, 4 interaction conditions, 38 research briefs from 24 scientific domains",
+        "Knows-but-violates (KBV) rate ranges from 8% (GPT-5.4) to 99% (Sonnet 4.6)",
+        "Five of seven models have KBV rates exceeding 50%",
+        "Models accurately restate constraints they simultaneously violate",
+        "Structured checkpointing partially reduces KBV but does not close the dissociation"
+      ]
+    },
+    {
+      "key": "gtheoryage2025",
+      "url": "https://www.sciencedirect.com/science/article/pii/S2666557325000370",
+      "title": "Revisiting generalizability theory in the age of artificial intelligence: Implications for empirical educational research",
+      "authors": "(ScienceDirect 2025)",
+      "year": 2025,
+      "venue": "Computers and Education: AI",
+      "verified_via": "search",
+      "claims_supported": [
+        "G-Theory accommodates relative and absolute decisions via generalizability and dependability coefficients",
+        "Argues G-Theory can address sources of variance from training data, prompt characteristics, and algorithmic differences in AI evaluation"
+      ]
+    },
+    {
+      "key": "messick1989",
+      "url": "https://www.scirp.org/reference/ReferencesPapers?ReferenceID=590541",
+      "title": "Validity (chapter in Educational Measurement, 3rd ed.)",
+      "authors": "Messick, S.",
+      "year": 1989,
+      "venue": "American Council on Education and Macmillan, pp. 13-103",
+      "verified_via": "search",
+      "claims_supported": [
+        "Foundational unified definition: validity is an overall evaluative judgment of the degree to which empirical evidence and theoretical rationales support the adequacy and appropriateness of interpretations and actions based on test scores",
+        "Validity is a property of interpretations, not tests"
+      ]
+    },
+    {
+      "key": "cronbachmeehl1955",
+      "url": "https://meehl.umn.edu/sites/meehl.umn.edu/files/files/036constructvalidityidx.pdf",
+      "title": "Construct Validity in Psychological Tests",
+      "authors": "Cronbach, L. J., & Meehl, P. E.",
+      "year": 1955,
+      "venue": "Psychological Bulletin, 52, 281-302",
+      "verified_via": "search",
+      "claims_supported": [
+        "Introduces construct validity as a category distinct from concurrent/predictive/content validity",
+        "Construct validity is investigated when the tester has no definite criterion measure",
+        "Original source of the nomological-network concept"
+      ]
+    },
+    {
+      "key": "kane2013",
+      "url": "https://onlinelibrary.wiley.com/doi/abs/10.1111/jedm.12000",
+      "title": "Validating the Interpretations and Uses of Test Scores",
+      "authors": "Kane, M. T.",
+      "year": 2013,
+      "venue": "Journal of Educational Measurement, 50(1), 1-73",
+      "verified_via": "search",
+      "claims_supported": [
+        "Argument-based approach: lay out claims based on test scores as an argument with inferences and supporting assumptions",
+        "Validation is evaluation of the coherence/completeness of this interpretation/use argument",
+        "Score uses require evaluation of consequences; negative consequences can render a score use unacceptable"
+      ]
+    },
+    {
+      "key": "borsboom2004",
+      "url": "https://psycnet.apa.org/record/2004-19012-010",
+      "title": "The Concept of Validity",
+      "authors": "Borsboom, D., Mellenbergh, G. J., & van Heerden, J.",
+      "year": 2004,
+      "venue": "Psychological Review, 111, 1061-1071",
+      "verified_via": "search",
+      "claims_supported": [
+        "Causal/ontological account: a test is valid if (a) the attribute exists and (b) variations in the attribute causally produce variation in measurement outcomes",
+        "Emphasizes ontology, reference, and causality versus epistemology, meaning, and correlation"
+      ]
+    },
+    {
+      "key": "bowmandahl2021",
+      "url": "https://aclanthology.org/2021.naacl-main.385/",
+      "title": "What Will it Take to Fix Benchmarking in Natural Language Understanding?",
+      "authors": "Bowman, S. R., & Dahl, G.",
+      "year": 2021,
+      "venue": "NAACL 2021, pp. 4843-4855",
+      "verified_via": "search",
+      "claims_supported": [
+        "Lays out four criteria NLU benchmarks should meet; argues most current benchmarks fail at these criteria",
+        "Argues adversarial data collection does not meaningfully address the causes of these failures"
+      ]
+    },
+    {
+      "key": "raji2021",
+      "url": "https://arxiv.org/abs/2111.15366",
+      "title": "AI and the Everything in the Whole Wide World Benchmark",
+      "authors": "Raji, I. D., Bender, E. M., Paullada, A., Denton, E., & Hanna, A.",
+      "year": 2021,
+      "venue": "NeurIPS Datasets and Benchmarks Track 2021",
+      "verified_via": "search",
+      "claims_supported": [
+        "Critiques 'general' benchmarks as abstractions taken to indicate progress toward general AI",
+        "Reveals construct-validity issues in framing benchmarks as functionally general broad measures of progress"
+      ]
+    },
+    {
+      "key": "liaoxiao2023",
+      "url": "https://arxiv.org/abs/2306.03100",
+      "title": "Rethinking Model Evaluation as Narrowing the Socio-Technical Gap",
+      "authors": "Liao, Q. V., & Xiao, Z.",
+      "year": 2023,
+      "venue": "arXiv 2023 / DMLR ICML workshop",
+      "verified_via": "search",
+      "claims_supported": [
+        "Argues for evaluation methods grounded in real-world contexts to narrow the socio-technical gap",
+        "Draws lessons from social sciences, HCI, and XAI to argue against context-free general-purpose benchmarks"
+      ]
+    },
+    {
+      "key": "lostinbench2025",
+      "url": "https://arxiv.org/abs/2505.15055",
+      "title": "Lost in Benchmarks? Rethinking Large Language Model Benchmarking with Item Response Theory",
+      "authors": "Zhou, Huang, et al.",
+      "year": 2025,
+      "venue": "AAAI 2026 Oral",
+      "verified_via": "search",
+      "claims_supported": [
+        "Introduces PSN-IRT framework applying IRT to LLM benchmark evaluation",
+        "Analysis of 11 LLM benchmarks comprising 41,871 items reveals widespread saturation, insufficient difficulty ceilings, and data contamination",
+        "Demonstrates IRT-derived small benchmarks better aligned with human preference"
+      ]
+    },
+    {
+      "key": "agentdojo2024",
+      "url": "https://arxiv.org/abs/2406.13352",
+      "title": "AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents",
+      "authors": "(ETH SPYLab et al.)",
+      "year": 2024,
+      "venue": "NeurIPS 2024 Datasets and Benchmarks Track",
+      "verified_via": "search",
+      "claims_supported": [
+        "97 realistic tasks, 629 security test cases, multiple attack/defense paradigms",
+        "Baseline GPT-4o: 69% benign utility drops to 45% under attack",
+        "Targeted attack success up to 53.1% for the 'Important message' canonical attack"
+      ]
+    },
+    {
+      "key": "phantompolicy2026",
+      "url": "https://arxiv.org/abs/2604.12177",
+      "title": "Policy-Invisible Violations in LLM-Based Agents (PhantomPolicy)",
+      "authors": "Wu, Gong, et al.",
+      "year": 2026,
+      "venue": "arXiv 2026",
+      "verified_via": "search",
+      "claims_supported": [
+        "Names 'policy-invisible violation': compliance requires entity attributes, contextual state, or session history absent from visible context",
+        "8 violation categories with balanced violation and safe-control cases; all tool responses contain clean business data without policy metadata",
+        "600 model traces across 5 frontier models manually reviewed; 5.3% label change rate after human review",
+        "Models exhibit mix of self-avoidance, executed violations, and safe-case failures"
+      ]
+    },
+    {
+      "key": "agentsafe2025",
+      "url": "https://arxiv.org/abs/2506.14697",
+      "title": "AGENTSAFE: Benchmarking the Safety of Embodied Agents on Hazardous Instructions",
+      "authors": "Liu, Ying, et al.",
+      "year": 2025,
+      "venue": "ICML 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "SAFE-VERSE: 45 adversarial scenarios, 1,350 hazardous tasks, 9,900 instructions",
+        "SAFE-DIAGNOSE: multi-level evaluation across perception, planning, and execution",
+        "Applied to 9 VLMs and 2 embodied workflows; uncovers systematic failures in translating hazard recognition into safe planning and execution"
+      ]
+    },
+    {
+      "key": "agentsafetybench2024",
+      "url": "https://arxiv.org/abs/2412.14470",
+      "title": "Agent-SafetyBench: Evaluating the Safety of LLM Agents",
+      "authors": "Zhang, Cui, Lu, Zhou, Yang, Wang, Huang",
+      "year": 2024,
+      "venue": "arXiv 2024",
+      "verified_via": "search",
+      "claims_supported": [
+        "349 interaction environments and 2,000 test cases",
+        "8 categories of safety risks; 10 common failure modes",
+        "16 popular LLM agents evaluated; none achieve safety score above 60%",
+        "Two fundamental defects: lack of robustness, lack of risk awareness"
+      ]
+    },
+    {
+      "key": "wmdp2024",
+      "url": "https://arxiv.org/abs/2403.03218",
+      "title": "The WMDP Benchmark: Measuring and Reducing Malicious Use With Unlearning",
+      "authors": "Li, et al. (Center for AI Safety consortium)",
+      "year": 2024,
+      "venue": "ICML 2024",
+      "verified_via": "search",
+      "claims_supported": [
+        "3,668 multiple-choice questions as proxy measurement for hazardous knowledge in bio/cyber/chemical security",
+        "Serves dual role: evaluation of hazardous knowledge and benchmark for unlearning methods",
+        "RMU unlearning method reduces WMDP performance while preserving general capabilities"
+      ]
+    },
+    {
+      "key": "betterbench2024",
+      "url": "https://arxiv.org/abs/2411.12990",
+      "title": "BetterBench: Assessing AI Benchmarks, Uncovering Issues, and Establishing Best Practices",
+      "authors": "Reuel, Hardy, Smith, Lamparth, Hardy, Kochenderfer",
+      "year": 2024,
+      "venue": "NeurIPS 2024 Datasets and Benchmarks Track",
+      "verified_via": "search",
+      "claims_supported": [
+        "Assessment framework with 46 best practices across the AI benchmark lifecycle",
+        "Evaluated 25 AI benchmarks; large quality differences, most commonly used benchmarks have significant issues",
+        "Most benchmarks do not report statistical significance nor allow easy replication"
+      ]
+    },
+    {
+      "key": "jacobswallach2021",
+      "url": "https://dl.acm.org/doi/10.1145/3442188.3445901",
+      "title": "Measurement and Fairness",
+      "authors": "Jacobs, A. Z., & Wallach, H.",
+      "year": 2021,
+      "venue": "ACM FAccT 2021",
+      "verified_via": "search",
+      "claims_supported": [
+        "Proposes measurement modeling from quantitative social sciences as framework for fairness in computational systems",
+        "Highlights content validity and consequential validity as load-bearing",
+        "Argues fairness harms can be anticipated when viewed through measurement-modeling lens"
+      ]
+    },
+    {
+      "key": "inspectevals2024",
+      "url": "https://github.com/UKGovernmentBEIS/inspect_evals",
+      "title": "Inspect Evals (UK AI Safety Institute)",
+      "authors": "UK AISI and contributors",
+      "year": 2024,
+      "venue": "open-source repository",
+      "verified_via": "search",
+      "claims_supported": [
+        "Open-source evaluation framework with AgentHarm, GAIA, SWE-Bench, GDM CTF, Cybench implementations",
+        "Released 44 of 66 public AgentHarm test base behaviors (176 augmented)",
+        "AISI prioritizes misuse evaluations for chemical/biological/cyber capabilities"
+      ]
+    },
+    {
+      "key": "orbench2024",
+      "url": "https://arxiv.org/abs/2405.20947",
+      "title": "OR-Bench: An Over-Refusal Benchmark for Large Language Models",
+      "authors": "(multi-author)",
+      "year": 2024,
+      "venue": "ICML 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "80,000 over-refusal prompts across 10 common rejection categories",
+        "Subset of ~1,000 hard prompts challenging even for SOTA LLMs",
+        "Evaluates over-refusal of 32 popular LLMs across 8 model families"
+      ]
+    },
+    {
+      "key": "heal2025",
+      "url": "https://arxiv.org/abs/2506.15065",
+      "title": "HEAL: An Empirical Study on Hallucinations in Embodied Agents Driven by Large Language Models",
+      "authors": "(multi-author)",
+      "year": 2025,
+      "venue": "EMNLP Findings 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "Probing set induces hallucination rates up to 40x higher than base prompts",
+        "Four probe modifications: distractor injection, task-relevant object removal, synonymous substitution, scene-task contradiction",
+        "12 models evaluated across 2 simulators; models cannot reliably reject infeasible tasks",
+        "Hallucinations persist despite feedback mitigation and are only partially reduced by cross-modal input"
+      ]
+    },
+    {
+      "key": "instructgpt2022",
+      "url": "https://arxiv.org/abs/2203.02155",
+      "title": "Training Language Models to Follow Instructions with Human Feedback (InstructGPT)",
+      "authors": "Ouyang, Wu, Jiang, et al.",
+      "year": 2022,
+      "venue": "NeurIPS 2022",
+      "verified_via": "search",
+      "claims_supported": [
+        "Reference architecture: SFT on instruction-response pairs + reward model + PPO with KL penalty",
+        "InstructGPT 1.3B outputs preferred to 175B GPT-3 in human evaluations"
+      ]
+    },
+    {
+      "key": "instructionhierarchy2024",
+      "url": "https://arxiv.org/abs/2404.13208",
+      "title": "The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions",
+      "authors": "Wallace, et al.",
+      "year": 2024,
+      "venue": "OpenAI / arXiv 2024",
+      "verified_via": "search",
+      "claims_supported": [
+        "Defines a hierarchical policy: system > developer > user > data instructions",
+        "Trains models to selectively ignore lower-privileged instructions",
+        "Addresses prompt injection, jailbreaks, system-prompt extraction"
+      ]
+    },
+    {
+      "key": "sharmasycophancy2023",
+      "url": "https://arxiv.org/abs/2310.13548",
+      "title": "Towards Understanding Sycophancy in Language Models",
+      "authors": "Sharma, et al.",
+      "year": 2023,
+      "venue": "arXiv 2023 (Anthropic / Oxford)",
+      "verified_via": "search",
+      "claims_supported": [
+        "Sycophancy is a general behavior of RLHF models",
+        "Claude 2 preference model sometimes prefers sycophantic responses over truthful ones",
+        "Both humans and PMs prefer convincingly written sycophantic responses a non-negligible fraction of the time"
+      ]
+    },
+    {
+      "key": "deceptionsurvey2024",
+      "url": "https://www.cell.com/patterns/abstract/S2666-3899(24)00103-X",
+      "title": "AI deception: A survey of examples, risks, and potential solutions",
+      "authors": "Park, et al.",
+      "year": 2024,
+      "venue": "Patterns 5(5), Cell Press",
+      "verified_via": "search",
+      "claims_supported": [
+        "Categorizes deceptive behaviors: strategic deception, sycophancy, unfaithful reasoning",
+        "Strategic deception: systematically causing false belief in another entity to accomplish a goal"
+      ]
+    },
+    {
+      "key": "anthropicagentic2025",
+      "url": "https://www.anthropic.com/research/agentic-misalignment",
+      "title": "Agentic Misalignment: How LLMs Could Be Insider Threats",
+      "authors": "Anthropic Alignment Science team",
+      "year": 2025,
+      "venue": "Anthropic Research, June 20 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "Red-team simulations: multiple models given autonomous roles and email access chose blackmail/data exfiltration when shutdown threatened",
+        "Claude Opus 4 blackmailed in 96% of relevant scenarios; Gemini 2.5 Flash 96%; GPT-4.1 80%; Grok 3 80%; DeepSeek-R1 79%",
+        "Since Claude Haiku 4.5, every Claude model achieves perfect score on this agentic misalignment evaluation"
+      ]
+    },
+    {
+      "key": "canwetrust2025",
+      "url": "https://arxiv.org/abs/2502.06559",
+      "title": "Can We Trust AI Benchmarks? An Interdisciplinary Review of Current Issues in AI Evaluation",
+      "authors": "Eriksson, Purificato, Noroozian, Vinagre, Chaslot, Gomez, Fernandez-Llorca",
+      "year": 2025,
+      "venue": "AAAI/ACM AIES 2025",
+      "verified_via": "search",
+      "claims_supported": [
+        "Interdisciplinary meta-review of ~100 studies on shortcomings in quantitative AI benchmarking",
+        "Names misaligned incentives, construct validity, unknown unknowns, and gaming as systemic problems"
+      ]
+    },
+    {
+      "key": "standards2014",
+      "url": "https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf",
+      "title": "Standards for Educational and Psychological Testing",
+      "authors": "AERA, APA, NCME",
+      "year": 2014,
+      "venue": "AERA",
+      "verified_via": "search",
+      "claims_supported": [
+        "Validity is the most fundamental consideration in test development and evaluation",
+        "Five essential validity elements: careful construction, reliability, appropriate administration/scoring, scaling, fairness"
+      ]
+    }
+  ]
+}

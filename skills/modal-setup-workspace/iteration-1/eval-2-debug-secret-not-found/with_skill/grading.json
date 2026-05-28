@@ -1,0 +1,28 @@
+{
+  "eval_id": 2,
+  "condition": "with_skill",
+  "expectations": [
+    {
+      "text": "Identifies that Modal validates ALL secrets in the list at app-build time, not at function-call time",
+      "passed": true,
+      "evidence": "matched 'build.?time'"
+    },
+    {
+      "text": "Provides a concrete fix: comment out / remove the unused secret line(s)",
+      "passed": true,
+      "evidence": "fix language found"
+    },
+    {
+      "text": "Shows the corrected code (with anthropic and google secrets removed or commented)",
+      "passed": true,
+      "evidence": "corrected code shown"
+    },
+    {
+      "text": "Does NOT suggest creating placeholder Anthropic secrets as the primary fix (a workaround, not a fix)",
+      "passed": true,
+      "evidence": "placeholder not pushed as primary"
+    }
+  ],
+  "pass_count": 4,
+  "total": 4
+}

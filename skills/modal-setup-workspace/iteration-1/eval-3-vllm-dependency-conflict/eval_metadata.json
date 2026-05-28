@@ -1,0 +1,12 @@
+{
+  "eval_id": 3,
+  "eval_name": "vllm-dependency-conflict",
+  "prompt": "I'm trying to host Qwen 2.5 7B on Modal with vLLM. The smoke test fails with: AttributeError: Qwen2Tokenizer has no attribute all_special_tokens_extended. My image pins only vllm==0.8.5. What's wrong and how do I fix it?",
+  "assertions": [
+    {"text": "Diagnoses the cause as a transformers version mismatch (transformers 5.x missing the attribute that vLLM still calls)"},
+    {"text": "Provides the fix: add an upper bound on transformers (e.g., transformers<4.56 or specific 4.x version)"},
+    {"text": "Shows corrected pip_install code with the transformers pin"},
+    {"text": "Explains WHY this happens (open upper bound in vllm's setup.py letting pip resolve to incompatible major) so the user can solve similar future issues"},
+    {"text": "Does NOT recommend downgrading vLLM as the primary fix (the user is on a known-good vLLM; transformers is the actual problem)"}
+  ]
+}

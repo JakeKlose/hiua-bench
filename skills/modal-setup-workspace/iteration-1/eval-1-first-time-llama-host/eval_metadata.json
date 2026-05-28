@@ -1,0 +1,15 @@
+{
+  "eval_id": 1,
+  "eval_name": "first-time-llama-host",
+  "prompt": "I want to run Llama 3.1 8B Instruct on a cloud GPU so I can call it from a Python script on my laptop and not pay $500 for an OpenAI subscription. A friend told me to use Modal. I've never used Modal before. Can you walk me through what I need to install, set up, and write to get a single inference call working end-to-end?",
+  "assertions": [
+    {"text": "Mentions modal token new for first-time authentication"},
+    {"text": "Mentions accepting the Llama license on HuggingFace before downloading (gated model)"},
+    {"text": "Provides an HF_TOKEN setup step and creates an hf-token Modal secret"},
+    {"text": "Pins transformers with an upper bound (e.g., <4.56) when installing vLLM"},
+    {"text": "Uses scaledown_window (or equivalent) NOT the deprecated container_idle_timeout"},
+    {"text": "Stores model weights at a path containing the real org/name slash (e.g., /weights/meta-llama/Llama-...) NOT a sanitized __ version"},
+    {"text": "Splits weight download (CPU container) from inference (GPU container) to avoid paying GPU rates for the download"},
+    {"text": "Includes a runnable smoke test step that verifies one inference call works end-to-end"}
+  ]
+}

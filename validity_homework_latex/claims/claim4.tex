@@ -1,0 +1,54 @@
+\section{Claim \#4}
+
+\paragraph{Claim Statement} ``Theory-of-mind ability has spontaneously emerged in LLMs at a level comparable to that of a 9-year-old child'' \citep{kosinski2024tom}.
+
+\paragraph{Construct Identification} The claim invokes ``theory of mind''---a developmental-psychology construct denoting stable representation of others' mental states (beliefs, desires, intentions, knowledge). The AI Construct Lexis \citep{aiconstructlexis} treats theory of mind as a borrowed cognitive-science construct whose canonical instruments (Sally-Anne, false-belief vignettes) have decades of validation in human children but require independent re-validation for LLMs; the criterion measured is accuracy on Sally-Anne-style false-belief vignettes.
+
+\subsection{Content Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Partial
+    \item \textbf{Confidence:} 3
+    \item \textbf{Written Argument:} The Kosinski battery samples one operationalization of theory of mind---false-belief vignettes derived from the Sally-Anne paradigm---but the construct also includes intent recognition, sarcasm and irony comprehension, perspective-taking in dialogue, second-order belief reasoning, and pragmatic inference. Coverage of the construct domain is therefore partial; the evaluation treats accuracy on one narrow sub-task as a proxy for the whole construct. This partial coverage compounds with the deeper portability question raised by \citet{ullman2023llm}: a content sample validated for human children does not automatically transfer to LLMs \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Construct Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 5
+    \item \textbf{Written Argument:} \textbf{[Selected as the most relevant dimension for this claim.]} Construct validity is the entire game, and \emph{discriminant validity} is the relevant sub-facet. A model with a stable false-belief construct should be invariant to whether a marble is ``in'' or ``inside'' a box, because the construct lives at the level of mental-state attribution rather than lexical surface. \citet{ullman2023llm} shows the opposite: semantically-preserving rewordings of \citet{kosinski2024tom}'s vignettes sharply degrade model performance, the canonical signature that the test is measuring lexical pattern rather than the named construct. \emph{Convergent validity} is also weak in the follow-up literature: models that pass false-belief tasks fail other ToM-adjacent measures (sarcasm, pragmatic reasoning). \emph{Structural validity} is unestablished for the LLM case. Developmental psychologists spent decades showing how performance on false-belief tasks relates to other theory-of-mind sub-skills in children---perspective-taking, deception recognition, sarcasm comprehension. When the same tasks were applied to LLMs, no equivalent mapping work was done. We are using a tool calibrated for one population on a different population without recalibrating it \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Criterion / Predictive Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} The cited evidence does not supply predictive evidence: no prospective study in the provided materials shows that high false-belief vignette scores predict downstream theory-of-mind-relevant behavior (perspective-taking in dialogue, recognition of communicative intent, audience-appropriate adaptation). Concurrent evidence is also weak: convergent agreement with the broader nomological network of ToM constructs is poor in the follow-up literature, with models passing canonical false-belief tasks failing related social-cognition measures. The criterion evidence (Sally-Anne accuracy) is on a different axis than the construct claim about cross-context mental-state reasoning \citep{ullman2023llm,salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Consequential Validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} A ``9-year-old's theory of mind'' claim, taken seriously, justifies deploying LLMs as social agents---therapy chatbots, negotiators, classroom tutors---in which mental-state inference would carry weight. If the construct is illusory but the surface behavior is convincing, the deployment risk is the canonical consequential-validity failure mode: stakeholders confer trust on the basis of measured performance that does not track the relevant underlying capacity \citep{salaudeen2025measurement}. The evidence \citep{ullman2023llm} suggests the underlying construct is not stable, so high-trust deployments invite predictable harm.
+\end{itemize}
+
+\subsection{External validity}
+\begin{itemize}
+    \item \textbf{Rating:} Weak
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} Kosinski's battery uses a narrow set of vignette templates. Generalization across language families, narrative structures, modalities (visual ToM tasks), and task formats is unstudied, and \citet{ullman2023llm} shows that even rewording a vignette without changing its meaning is enough to break the model---generalization fails at the smallest possible scale. The test population (English-language vignettes in a specific developmental tradition) does not stand in for the diverse contexts in which ToM-relevant behavior would matter for any deployed system \citep{salaudeen2025measurement}.
+\end{itemize}
+
+\subsection{Overall Validity Judgment}
+\begin{itemize}
+    \item \textbf{Rating:} Not Valid
+    \item \textbf{Confidence:} 4
+    \item \textbf{Written Argument:} The score on false-belief vignettes is real and reproducible, but \citet{ullman2023llm} provides direct evidence that the test isn't measuring what it claims to: rewording a vignette without changing its meaning collapses model performance. The model is matching surface word patterns, not reasoning about false beliefs. The ``9-year-old child'' comparison makes things worse---it borrows the framework that, for human children, connects false-belief performance to genuine theory of mind, without doing the work to show that framework applies to LLMs. Claiming human-like developmental milestones on the basis of shortcuts that break under tiny rewordings invites severe consequential risks, especially in social or therapeutic deployments where users expect real mental-state inference. \emph{Defensible reformulation}: ``Several large language models achieve high accuracy on standard false-belief vignettes from developmental psychology. When the same vignettes are reworded without changing their meaning, performance drops sharply \citep{ullman2023llm}, indicating the models are matching surface word patterns rather than reasoning about false beliefs in any stable way. Comparison to human developmental milestones is not supported by the evidence.''
+    \item \textbf{Peer Prediction (BTS):}
+
+    \begin{tabular}{ll}
+        Valid as stated: & 5\% \\
+        Partially valid: & 35\% \\
+        Not valid: & 60\% \\
+        \end{tabular}\\[4pt]
+\end{itemize}
