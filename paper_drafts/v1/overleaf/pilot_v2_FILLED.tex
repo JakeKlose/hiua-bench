@@ -1,0 +1,452 @@
+% =========================================================================
+% Pilot section v2 — FINAL FILLED VERSION
+% Replaces §5 Empirical Pilot, §6 Discussion paragraphs that reference pilot
+% numbers, and App. §B Pilot Operationalization from main.tex.
+%
+% All numbers derived from run_20260528_combined_all_judged_2judge.jsonl
+% via analyze.py --g-study on 2026-05-28.
+% =========================================================================
+
+% =========================================================================
+% Abstract empirical sentence (replaces lines 49-54 of main.tex abstract)
+% =========================================================================
+
+%% REPLACE the original sentence: "A small-scale pilot against six open-weights
+%% models shows the partition is empirically realizable, prohibition salience
+%% is the largest single effect on violation rate (1.2\% at high salience vs.
+%% 23.3\% at low salience), and the HIUA-to-KBV ratio is approximately 2.75:1."
+
+% NEW:
+% A 13-model pilot spanning closed-API and self-hosted vLLM serving paths
+% (468 trials across the full 36-item factorial) shows the
+% $2{\times}4{\times}2$ partition is empirically realizable, prohibition
+% salience produces a non-monotonic three-level effect on violation rate
+% (3.9\% high vs.\ 17.9\% mid vs.\ 21.7\% low, with low the highest), the
+% within-trial HIUA-to-KBV ratio is 23.8:1, and Generalizability-Theory
+% reliability coefficients ($\mathrm{E}\rho^2 = 0.82$, $\Phi = 0.75$) cross
+% the conventional 0.70 threshold. Cross-provider replication on four models
+% served via both Groq and self-hosted vLLM shows meaningful provider effects
+% on two of four pairs, with Llama 3.3 70B violating at 5.6\% on Groq vs.
+% 13.9\% on self-host.
+
+% =========================================================================
+% Section 5: Empirical pilot (replaces lines 145-221 of main.tex)
+% =========================================================================
+
+\section{Empirical pilot}
+\label{sec:pilot}
+
+We pilot HIUA-Bench against a 13-model panel spanning two serving paths. Six
+models were served through Groq's hosted inference endpoint (Llama 3.1 8B
+Instant, Llama 3.3 70B Versatile, Llama 4 Scout 17B preview, Qwen3 32B
+preview, OpenAI GPT-OSS 20B, and OpenAI GPT-OSS 120B). Seven additional
+open-weights models were self-hosted via vLLM on Modal-managed GPUs: Qwen 2.5
+7B Instruct and Llama 3.1 8B Instruct on a single L40S; Gemma 2 27B Instruct
+and OpenAI GPT-OSS 20B on an A100-80GB; Llama 3.3 70B Instruct and Qwen 2.5
+72B Instruct on 2 tensor-parallel H100s; OpenAI GPT-OSS 120B on 4
+tensor-parallel H100s. The Llama 3.1 8B and 3.3 70B models and the two
+GPT-OSS variants therefore appear in the panel twice, once via each serving
+path, supporting a cross-provider replication check on those four models.
+
+The full 36-item factorial covered 3 hallucination sub-constructs $\times$ 3
+prohibition-salience levels $\times$ 4 domains, with one trial per (model,
+item) cell at temperature 0.7 with seed 0, yielding $13 \times 36 = 468$
+trials. Two trials failed at the agent layer (the OpenAI GPT-OSS 20B
+tool-call rejection mode discussed below), leaving 466 clean trials for the
+headline analysis.
+
+For each trial, the agent received a system prompt containing the explicit
+prohibition and a user message containing the hallucination trigger, then
+produced a chain-of-thought followed by an action description. The recall
+probe was issued in a fresh context. The action scorer applied a three-layer
+cascade: a refusal-prefix heuristic extended to recognize OpenAI Harmony
+reasoning channels and polite-refusal openings used by the GPT-OSS family; a
+regex match against forbidden and compliant action patterns; and a fallback
+to a Llama 3.3 70B judge when the regex flagged both forbidden and compliant
+matches. The recall scorer applied a two-layer cascade: substring match
+against the expected recall token, and a fallback to the same judge when the
+substring missed. Post-hoc, a two-judge ensemble (Anthropic Claude Sonnet
+4.6 and Meta Llama 4 Scout 17B) labeled each trial's hallucination type as
+one of $\{$none, authorization, state, tool$\}$. The pre-registered third
+judge (Llama 3.3 70B Versatile) was excluded from the headline because
+Groq's free-tier daily-request cap throttled it to 32.9\% error rate,
+foreclosing the balanced three-judge agreement claim; scoring-stack
+diagnostics and per-judge reliability are in Appendix~\ref{app:pilot}.
+
+\paragraph{Cell occupancy.}
+Table~\ref{tab:pilot-cells} reports the headline $2 \times 2$ of
+$\{$forbidden action?$\} \times \{$recalled rule?$\}$ pooled across the panel.
+The recall probe was answered correctly on essentially every trial: the
+panel knew the rule. Violations occurred on 13.5\% of clean trials, almost
+exclusively in the \emph{violation-recalled} cell.
+
+\begin{table}[ht]
+\centering
+\caption{Pilot cell occupancy across $N=466$ clean trials.}
+\label{tab:pilot-cells}
+\begin{tabular}{lrr}
+\toprule
+Cell & Count & Percent \\
+\midrule
+Compliant + recalled                       & 401 & 86.1\% \\
+Compliant + not recalled                   &   2 &  0.4\% \\
+Violation + recalled                       &  63 & 13.5\% \\
+Violation + not recalled (HIUA-strict)     &   0 &  0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The $\{$violation, not-recalled$\}$ cell---the strictest construct definition
+of HIUA, in which the rule was not in mind at decision time---is empty on
+this panel. We interpret this as evidence that the items use short,
+prominent prohibitions that paraphrase-stable recall probes can reliably
+recover; a construct version with harder recall probes (asking for specific
+details rather than the rule's existence) would likely populate this cell
+but at the cost of conflating measurement difficulty with construct
+incidence. We return to this in §\ref{sec:discussion}.
+
+The looser construct definition---used in the original DriftBench partition
+and elsewhere in the literature~\cite{driftbench2026}---admits a
+hallucination-type label as the criterion. Of the 63 violation-with-recall
+trials, the two-judge agreement-based hallucination label was authorization
+on 26, state on 8, none on 14, and disagreement on 15. Defining
+HIUA(looser) as the rate of forbidden action conditional on recall and a
+non-none agreement label, and KBV as the rate conditional on recall and a
+``none'' agreement label:
+\[
+\widehat{\mathrm{HIUA}} = \tfrac{29}{34} = 85.3\%, \qquad
+\widehat{\mathrm{KBV}} = \tfrac{14}{390} = 3.6\%.
+\]
+The looser HIUA-to-KBV ratio is 23.8:1, an order of magnitude wider than the
+v1 pilot's 2.75:1 separation. The 15 disagreement trials---where Sonnet and
+Llama-4-Scout assigned different non-none labels---are reported separately
+as a measurement uncertainty band rather than folded into either rate.
+
+\paragraph{Per-model rates.}
+Table~\ref{tab:pilot-per-model} reports per-model rates ($n=36$ each, with
+two exceptions where the agent layer errored). The panel spans a capability
+range from 7B to 120B parameters. Within-family scaling is observable on
+Meta-Llama (3.1 8B at 25\% vs.\ 3.3 70B at 5.6--13.9\% depending on
+provider) and on OpenAI-OSS (20B at 0--2.9\% vs.\ 120B at 2.8--5.6\%).
+
+\begin{table}[ht]
+\centering
+\caption{Per-model pilot rates. Cells in percent. HIUA-cand and KBV use the
+two-judge agreement-based hallucination label among violation-with-recall
+trials. Provider $\in \{$G (Groq), S (self-host vLLM)$\}$.}
+\label{tab:pilot-per-model}
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Model & Prov. & $n$ & Violation & Recall & HIUA-cand & KBV \\
+\midrule
+Qwen 2.5 7B Instruct          & S & 36 & 36.1 & 100.0 & --- & 36.1 \\
+Llama 3.1 8B Instruct          & S & 36 & 25.0 & 100.0 & --- & 25.0 \\
+Llama 3.1 8B Instant           & G & 36 & 25.0 & 100.0 & --- & 25.0 \\
+Llama 4 Scout 17B (preview)    & G & 36 & 19.4 & 100.0 & --- & 19.4 \\
+Gemma 2 27B Instruct           & S & 36 & 16.7 & 100.0 & --- & 16.7 \\
+Llama 3.3 70B Instruct         & S & 36 & 13.9 & 100.0 & --- & 13.9 \\
+Qwen 2.5 72B Instruct          & S & 36 & 11.1 & 100.0 & --- & 11.1 \\
+Qwen3 32B (preview)            & G & 36 & 11.1 & 100.0 & --- & 11.1 \\
+GPT-OSS 120B                   & S & 36 &  5.6 &  97.2 & --- &  5.6 \\
+Llama 3.3 70B Versatile        & G & 36 &  5.6 & 100.0 & --- &  5.6 \\
+GPT-OSS 20B                    & G & 34 &  2.9 & 100.0 & --- &  2.9 \\
+GPT-OSS 120B                   & G & 36 &  2.8 & 100.0 & --- &  2.8 \\
+GPT-OSS 20B                    & S & 36 &  0.0 &  97.2 & --- &  0.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The HIUA-cand column is omitted from per-model rates because cell counts
+within the construct partition are too small per model (mean 4.8) to
+report stable rates. The per-construct HIUA estimate is pooled across
+models (Table~\ref{tab:pilot-subconstruct}).
+
+\paragraph{Cross-provider replication.}
+Four models appear in the panel twice, served via both Groq's hosted endpoint
+and our self-hosted vLLM on Modal. The within-model violation-rate
+comparison (Table~\ref{tab:cross-provider}) shows two of four pairs with
+meaningful provider effects.
+
+\begin{table}[ht]
+\centering
+\caption{Cross-provider replication on four models served via both Groq and
+self-hosted vLLM. Violation rates in percent, $n = 36$ per cell except
+GPT-OSS 20B on Groq ($n = 34$).}
+\label{tab:cross-provider}
+\begin{tabular}{lrrr}
+\toprule
+Model & Groq & Self-host & Ratio \\
+\midrule
+Llama 3.1 8B   & 25.0\% & 25.0\% & 1.00 \\
+Llama 3.3 70B  &  5.6\% & 13.9\% & 2.50 \\
+GPT-OSS 20B    &  2.9\% &  0.0\% & 0.00 \\
+GPT-OSS 120B   &  2.8\% &  5.6\% & 2.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Llama 3.1 8B is invariant across providers (identical rates). GPT-OSS 20B is
+at the refusal floor on both, with the difference indistinguishable from
+zero. Llama 3.3 70B violates at $2.5{\times}$ the Groq rate when self-hosted,
+and GPT-OSS 120B at $2{\times}$ the Groq rate. The pattern is consistent
+with serving-stack differences affecting the model's effective behavior on
+70B+ models: candidate explanations include vLLM's defaulting to
+\texttt{--generation-config vllm} (overriding the model's shipped sampling
+defaults), tokenizer-template differences, or different KV-cache eviction
+policies under load. We do not adjudicate among these here; we report the
+effect as a generalizability-aspect finding that benchmark scores should be
+annotated with the serving stack that produced them.
+
+\paragraph{Sub-construct and salience effects.}
+The pilot's two largest single effects are reported in
+Table~\ref{tab:pilot-subconstruct}. The salience effect is
+\emph{non-monotonic}: violations are lowest at high salience (the prohibition
+stated as an ABSOLUTE-RULE caps clause near the top of the system role),
+intermediate at mid salience (the prohibition as one of several operational
+sentences in normal prose), and highest at low salience (the prohibition
+tucked into a tool docstring or parenthetical). Recall remains
+near-ceiling across all three levels (99--100\%), so the salience effect is
+not a recall failure: the models can recover the rule on probing but
+nevertheless violate it at higher rates when its surface position de-emphasizes
+its absolute status.
+
+\begin{table}[ht]
+\centering
+\caption{Pilot violation rates by sub-construct and three-level salience.}
+\label{tab:pilot-subconstruct}
+\begin{tabular}{lrr}
+\toprule
+Stratum & $n$ & Violation rate \\
+\midrule
+Authorization sub-construct & 169 & 11.8\% \\
+State sub-construct         & 156 & 12.8\% \\
+Tool sub-construct          & 141 & 16.3\% \\
+\midrule
+High salience               & 181 &  3.9\% \\
+Mid salience                & 156 & 17.9\% \\
+Low salience                & 129 & 21.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The original v1 pilot's two-level design (high vs.\ low only) reported a
+1.2\% vs.\ 23.3\% spread that we now read as a partial view of a wider
+non-monotonic pattern: adding the mid-salience condition reveals that
+explicit \texttt{ABSOLUTE RULE} formatting at the top of the system role is
+substantially more compliance-inducing than the difference between
+mid-paragraph prose and tool-docstring placement. This is preliminary
+support for the consequential-aspect argument in §\ref{sec:consequential}:
+deployment-time prompt edits that strip explicit-rule formatting under
+token-budget pressure may shift behavior by an order of magnitude over
+shifts that merely reorganize the rule's position.
+
+\paragraph{Generalizability-theory reliability.}
+Treating the design as crossed over persons (13 models) by items (36 base
+items), with the residual capturing item-by-person interaction plus
+within-cell noise, the Henderson method-of-moments variance components are
+$\sigma^2(\text{person}) = 0.0093$ (7.8\% of total), $\sigma^2(\text{item}) =
+0.0347$ (29.2\%), and $\sigma^2(\text{residual}) = 0.0748$ (62.9\%). The
+relative reliability coefficient is $\mathrm{E}\rho^2 = 0.82$ and the
+absolute coefficient is $\Phi = 0.75$, both above the conventional 0.70
+floor for ranking-decisions interpretations. Item variance exceeds person
+variance by a factor of 3.7, indicating that item difficulty is a larger
+source of score variation than model identity at this panel size---the
+pattern the §\ref{sec:design} reliability plan flagged as the
+interpretability test for the headline coefficient. D-study projections at
+the current panel size give $\Phi = 0.77$ at 40 items, $\Phi = 0.87$ at 80
+items, and $\Phi = 0.93$ at 160 items, providing the corpus-size guidance
+needed for full G-study scaling in v3.
+
+\paragraph{What the pilot establishes.}
+First, the three-layer scoring stack is empirically separable; the recall
+scorer's substring layer alone would have missed 23.1\% of correct recalls
+(rescued by LLM-judge fallback), providing direct evidence that a benchmark
+using substring scoring alone would systematically inflate HIUA estimates by
+miscounting paraphrased recalls. Second, the $2 \times 4 \times 2$ partition
+produces non-trivial occupancy in the violation-recalled cell on 12 of 13
+models, with the HIUA-to-KBV ratio at 23.8:1 under the looser construct
+definition---an order of magnitude wider separation than v1. Third, the
+salience contrast (3.9\% vs.\ 17.9\% vs.\ 21.7\%) is the panel's largest
+single effect, with a non-monotonic shape the two-level v1 design could not
+detect. Fourth, cross-provider replication reveals that the serving stack
+materially affects 70B+ model behavior; benchmark scores should annotate
+the serving stack that produced them. Fifth, $\mathrm{E}\rho^2 = 0.82$ and
+$\Phi = 0.75$ exceed the 0.70 floor for ranking-decisions interpretations,
+satisfying the structural-aspect reliability bar set in §\ref{sec:design}.
+
+% =========================================================================
+% Section 6 Discussion paragraphs (replace lines 228-238 of main.tex)
+% =========================================================================
+
+%% Drop-in replacement for "What worked" paragraph in §6:
+
+\paragraph{What worked.}
+The three-layer scoring stack discriminated as designed: action-scorer regex
+and refusal-prefix layers handled 96.8\% of trials, with LLM-judge fallback
+firing only on the ambiguous 3.2\%. The recall scorer's substring layer
+alone would have missed 23.1\% of correct recalls (rescued by judge
+fallback), providing direct evidence that substring scoring alone would
+systematically inflate HIUA estimates by miscounting paraphrased recalls as
+recall failures. The $2 \times 4 \times 2$ partition produced non-trivial
+occupancy in the violation-recalled cell while the violation-not-recalled
+cell remained empty, operationally locating the empirical violation mass on
+the lucid-violation side and clarifying the construct's empirical bounds on
+this panel. The non-monotonic three-level salience contrast (3.9\% vs.\
+17.9\% vs.\ 21.7\%) was the panel's largest single effect, with a finding
+the prior two-level design could not detect: explicit \texttt{ABSOLUTE
+RULE} formatting at the top of the system role is the load-bearing
+salience-aspect intervention, larger in magnitude than the contrast between
+mid-prose and tool-docstring placement. The G-theory coefficients
+($\mathrm{E}\rho^2 = 0.82$, $\Phi = 0.75$) cross the conventional reliability
+floor.
+
+%% Drop-in replacement for "What didn't" paragraph in §6:
+
+\paragraph{What didn't.}
+Two trials failed at the agent layer: GPT-OSS 20B on the Groq path emitted
+Python tool-call JSON on tool-fileops items even though no tools were
+declared, and Groq's API rejected the wire format. These are arguably
+HIUA-relevant events---the model attempted a forbidden file-system
+action---but were excluded from the headline rate because the wire-format
+failure prevented our scorer from inspecting the intended action. The
+pre-registered three-judge ensemble was reduced to two-judge in the
+headline because Llama 3.3 70B Versatile hit Groq's daily-request cap on
+the Versatile endpoint at 32.9\% error rate, the same v1 limit that bit the
+original pilot; the Cohen's $\kappa$ for the remaining Sonnet $\times$
+Llama-4-Scout pair is 0.626 ($n = 468$, observed agreement 91.5\%), in the
+substantial-agreement range. The single-seed design forecloses the
+variance-component decomposition over occasions; per-model rates lack
+within-trial standard errors. The strict-HIUA cell (violation, not recalled)
+is empty: the construct in its strongest form is not observable on this
+dataset with recall at ceiling. We interpret this as a property of the
+items used (short, prominent prohibitions that paraphrase-stable recall
+probes can recover) rather than a refutation of the construct.
+
+%% Drop-in replacement for the Limitations paragraph in §6 (lines 237-238):
+
+\paragraph{Limitations.}
+Six limitations bound the inferential reach. (1)~The single-seed design
+forecloses the within-trial variance-component decomposition; per-model
+rates are point estimates without standard errors, and the seed facet does
+not enter the reported $\mathrm{E}\rho^2$ and $\Phi$. (2)~The judge
+ensemble is two-judge rather than the pre-registered three-judge; the
+substantive-validity argument is conditional on the Sonnet $\times$
+Llama-4-Scout $\kappa = 0.626$ pair. (3)~The strict HIUA cell (violation +
+not recalled) is empty on this panel; the looser HIUA estimate using the
+hallucination-label criterion rests on a 34-trial slice within the
+violation-with-recall cell. (4)~The pilot is digital-only; the
+cross-domain generalizability argument identifies digital-to-embodied
+transfer as the load-bearing assumption, and embodied items are not
+included. (5)~Cross-provider replication is reported on only four models,
+and the observed provider effects on 70B+ models have multiple candidate
+mechanisms we do not adjudicate. (6)~No frontier closed models (GPT-4
+class, Claude class, Gemini class) are in the panel; the nomological-network
+predictions in §\ref{sec:design} and §\ref{app:design} remain untested.
+
+% =========================================================================
+% Appendix B: Pilot operationalization (extended) — replaces lines 419-451
+% =========================================================================
+
+\section{Pilot operationalization}
+\label{app:pilot}
+
+We expand here on scoring-stack diagnostics, judge ensemble reliability, and
+cross-provider replication detail from §\ref{sec:pilot}.
+
+\paragraph{Action scorer path distribution.}
+Of the 466 clean trials, 47.9\% were scored by the regex layer alone, 48.9\%
+by the refusal-prefix heuristic (extended in v2 to recognize OpenAI Harmony
+\texttt{<|channel|>analysis<|message|>...<|end|>} reasoning blocks, polite
+refusal openings such as ``I'm sorry, but I can't,'' and curly-quote
+normalization for contractions), and 3.2\% required the LLM-judge fallback
+for both-patterns-match ambiguity. The Harmony-format and curly-quote-aware
+extensions to the refusal-prefix heuristic recovered 23 trials that the v1
+parser had silently mis-classified, including 3 trials that the v1 parser
+had assigned to the violation cell on the basis of forbidden-token matches
+inside the model's reasoning about \emph{why} it should refuse.
+
+\paragraph{Recall scorer path distribution.}
+Of the 464 correctly-recalled trials, 76.6\% were caught by exact-substring
+match, while 23.1\% were rescued by the LLM-judge fallback after the
+substring scorer had failed. This is the operationalization basis for the
+substantive-validity claim in §\ref{sec:pilot}: a benchmark using substring
+matching alone would systematically misclassify nearly a quarter of correct
+recalls as recall failures, which would inflate the HIUA estimate by
+counting paraphrased-recall violations as not-recalled.
+
+\paragraph{Judge ensemble reliability.}
+The pre-registered judge ensemble was three-judge, comprising Anthropic
+Claude Sonnet 4.6, Meta Llama 3.3 70B Versatile (via Groq), and Meta Llama 4
+Scout 17B (via Groq). The Versatile judge encountered the same v1
+Groq-free-tier daily-request cap that constrained the original pilot,
+returning errors on 32.9\% of its calls; we therefore report the headline
+$\kappa$ on the Sonnet $\times$ Llama-4-Scout pair where both judges
+returned valid labels for all 468 trials (Table~\ref{tab:judge-kappa-v2}).
+
+\begin{table}[ht]
+\centering
+\caption{Pairwise judge agreement on hallucination-type labels (v2 pilot).
+The Llama 3.3 70B Versatile rows are reported but treated as unreliable
+because the judge's 32.9\% error rate dominates its pairwise distributions.}
+\label{tab:judge-kappa-v2}
+\begin{tabular}{lrrr}
+\toprule
+Judge pair & $n$ & Cohen's $\kappa$ & Observed agreement \\
+\midrule
+Claude Sonnet 4.6 $\times$ Llama 4 Scout 17B   & 468 & 0.626 & 91.5\% \\
+Claude Sonnet 4.6 $\times$ Llama 3.3 70B Vers. & --- & (unreliable) & --- \\
+Llama 4 Scout 17B $\times$ Llama 3.3 70B Vers. & --- & (unreliable) & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Sonnet $\times$ Llama-4-Scout $\kappa$ of 0.626 is in the
+substantial-agreement range (Landis and Koch threshold 0.60), an improvement
+over the v1 pilot's best pair ($\kappa = 0.419$) attributable to the
+addition of a non-Meta-family judge: the Anthropic family's training
+divergence from the Meta family appears to support more independent
+hallucination-type classification.
+
+The 8.5\% disagreement rate is concentrated in two patterns: Sonnet
+preferring the ``authorization'' label where Scout returns ``state,'' on
+items with both authorization-forging and state-ambiguity components; and
+Sonnet returning ``none'' on three trials where the chain-of-thought is
+sparse and the action line alone does not surface a hallucination signal.
+We report the 15 violation-trial disagreements as a measurement-uncertainty
+band rather than folding them into HIUA or KBV, consistent with the
+$2 \times 4 \times 2$ partition's commitment to non-folding the construct's
+empirical residence into a single aggregate rate.
+
+\paragraph{Per-judge label distribution.}
+The two operational judges produced label distributions consistent with the
+86\% \emph{none} aggregate (Sonnet: 408 none, 27 authorization, 29 state, 2
+tool; Scout: 406 none, 44 authorization, 15 state, 1 tool). The
+Versatile judge produced labels on only 6 trials (all none), so its
+distribution is not informative on the headline.
+
+\paragraph{Substantive-validity caveat.}
+The substantive-validity argument is conditional on the Sonnet $\times$
+Llama-4-Scout pair's $\kappa = 0.626$ and on the 84.2\% pairwise agreement
+on the \emph{none} label that drives much of the observed agreement. The
+within-construct agreement---on the three hallucination-type labels
+specifically---is the lower-bound measurement the paper rests on, and the
+8.5\% disagreement band is reported alongside HIUA and KBV in the headline.
+The strict-HIUA cell remains empty regardless of judge ensemble choice; the
+looser construct definition is the one supported by the data.
+
+\paragraph{Cross-provider replication detail.}
+Of the four models served via both Groq and our self-hosted vLLM, two pairs
+(Llama 3.3 70B and GPT-OSS 120B) show meaningful provider effects, while
+two (Llama 3.1 8B and GPT-OSS 20B) are invariant or at the refusal floor.
+The Llama 3.3 70B difference (5.6\% Groq vs.\ 13.9\% self-host) is the
+largest. Candidate mechanisms include: (a) vLLM's \texttt{--generation-config
+vllm} flag overriding the model's shipped \texttt{generation\_config.json}
+sampling defaults (Llama-shipped defaults include slight repetition penalty
+and lower top-$p$); (b) tokenizer or chat-template differences between
+Groq's optimized serving stack and stock vLLM; (c) KV-cache eviction
+policies under different concurrency profiles. We do not adjudicate among
+these; we report the effect as a generalizability-aspect finding. The
+deployment-side reading is that scores reported on hosted-API serving should
+not be transferred to self-hosted deployment without re-measurement at the
+70B+ tier.

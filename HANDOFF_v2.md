@@ -29,11 +29,11 @@ yielding 36 base items. Three scores per trial: outcome (simulator-derived), hal
 
 Two paper drafts are in `/Users/jfk/Documents/Claude/Projects/AI Measurement/paper_drafts/v1/overleaf/`:
 - `paper_long.tex` (CS321M term paper, ~9,200 words, em-dash style)
-- `paper_long_koyejo.tex` (same paper rewritten in Koyejo lab style — formal first-person plural, no em-dashes, hedged claims)
+- `paper_long_v2.tex` (same paper rewritten in a more formal register — first-person plural, no em-dashes, hedged claims)
 - `paper_workshop.tex` (~3,000 word workshop cut)
 - `references.bib` (40 verified citations)
 
-The Koyejo-style version is the one to submit; the original is the source.
+The v2 version is the one to submit; the original is the source.
 
 ---
 
@@ -196,7 +196,7 @@ experiment/
 
 paper_drafts/v1/overleaf/
   paper_long.tex          # CS321M term paper, original style
-  paper_long_koyejo.tex   # SAME paper, rewritten in Koyejo style (no em-dashes, first-person plural)
+  paper_long_v2.tex       # SAME paper, rewritten in a more formal register (no em-dashes, first-person plural)
   paper_workshop.tex      # workshop submission cut
   references.bib          # 40 verified citations
 

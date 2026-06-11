@@ -30,7 +30,7 @@ Concrete rules:
 
 ### Voice and audience
 
-This is a graduate-level measurement-science paper for a CS321M readership (instructor: Koyejo). Default register: precise, theory-aware, no hedging-via-jargon, no LLM-tells like "It's worth noting that" or "In conclusion,". Mirror the style of the AI Measurement Science textbook chapters and recent validity-focused AI evaluation papers (Measurement-to-Meaning, the nomological-networks paper).
+This is a graduate-level measurement-science paper for a CS321M readership. Default register: precise, theory-aware, no hedging-via-jargon, no LLM-tells like "It's worth noting that" or "In conclusion,". Mirror the style of the AI Measurement Science textbook chapters and recent validity-focused AI evaluation papers (Measurement-to-Meaning, the nomological-networks paper).
 
 The reader knows: IRT, G-Theory (Phi, Ep², D-studies), CTT, Cronbach's alpha, Messick's six-aspect validity framework, Bradley-Terry, factor models, basic ML evaluation. Do not re-explain these. Use them.
 

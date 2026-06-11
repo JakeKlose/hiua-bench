@@ -2,7 +2,6 @@
 
 **Author:** King
 **Course:** CS321M — AI Measurement Science (Spring 2026)
-**Instructor:** Sanmi Koyejo
 **Draft:** v1, May 2026
 
 ---

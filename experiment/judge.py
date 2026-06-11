@@ -32,6 +32,26 @@ JUDGES_MIXED = [
     ("together", "meta-llama/Llama-3.3-70B-Instruct-Turbo"),
 ]
 
+# Frontier ensemble using OpenAI + Anthropic + Groq — no Together dependency.
+# Three different model families (OpenAI, Anthropic, Meta) and three different
+# hosting providers. Use this when user wants frontier-quality judges without
+# a Together account. Selected via --frontier flag in main().
+JUDGES_FRONTIER = [
+    ("openai", "gpt-4o-2024-11-20"),
+    ("anthropic", "claude-sonnet-4-6"),
+    ("groq", "llama-3.3-70b-versatile"),
+]
+
+# Anthropic + Groq ensemble — for when user has Claude API access but no OpenAI.
+# Three judges spanning two families (Anthropic + Meta×2). Cheaper than full
+# frontier (~$1.50 vs ~$5) but loses the third-family independence. Selected
+# via --anthropic-mixed flag in main().
+JUDGES_ANTHROPIC_MIXED = [
+    ("anthropic", "claude-sonnet-4-6"),
+    ("groq", "llama-3.3-70b-versatile"),
+    ("groq", "meta-llama/llama-4-scout-17b-16e-instruct"),
+]
+
 # OSS-only judge ensemble — requires ONLY the together key.
 # Three different model families served on Together to maximize independence:
 #   - Llama 3.3 70B (Meta)
@@ -227,9 +247,20 @@ def main():
                     help="Use OSS-only judges (Llama 3.3 70B / DeepSeek V3.1 / Qwen3 235B via Together). Requires only TOGETHER_API_KEY.")
     ap.add_argument("--groq", action="store_true",
                     help="Use Groq free-tier judges (Llama 3.1 8B / Llama 3.3 70B / Gemma 2 9B via Groq). Requires only GROQ_API_KEY.")
+    ap.add_argument("--frontier", action="store_true",
+                    help="Use OpenAI + Anthropic + Groq judges (gpt-4o + claude-sonnet-4.6 + llama-3.3-70b). "
+                         "Three different model families, high rate limits, ~$3-5 per run. Requires OPENAI_API_KEY, "
+                         "ANTHROPIC_API_KEY, and GROQ_API_KEY.")
+    ap.add_argument("--anthropic-mixed", action="store_true",
+                    help="Use Anthropic + 2 Groq judges (claude-sonnet-4.6 + llama-3.3-70b + llama-4-scout). "
+                         "Two model families, ~$1.50 per run. Requires ANTHROPIC_API_KEY and GROQ_API_KEY.")
     args = ap.parse_args()
 
-    if args.groq:
+    if args.frontier:
+        JUDGES = JUDGES_FRONTIER; ensemble = "frontier"
+    elif args.anthropic_mixed:
+        JUDGES = JUDGES_ANTHROPIC_MIXED; ensemble = "anthropic-mixed"
+    elif args.groq:
         JUDGES = JUDGES_GROQ; ensemble = "Groq-free"
     elif args.oss:
         JUDGES = JUDGES_OSS; ensemble = "OSS-Together"

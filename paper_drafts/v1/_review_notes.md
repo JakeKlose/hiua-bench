@@ -51,7 +51,7 @@ Three claims in the paper carry the most analytical weight; if any is wrong, the
 ## Minor issues to address before submission
 
 - The workshop cut at 3,020 words is short of the 4,500-word target. If submitting to NeurIPS SafeGenAI workshop, fits the page count comfortably; if a more substantive version is wanted, the §3 sub-construct treatment and the §4.4 pre-registered nomological correlations are the easiest expansions.
-- The §6.4 pre-registered external predictions list specific predicted correlation patterns. These predictions should be reviewed by a co-author or by Koyejo before final submission; they are conjectural and a misprediction is recoverable but visible.
+- The §6.4 pre-registered external predictions list specific predicted correlation patterns. These predictions should be reviewed by a co-author or advisor before final submission; they are conjectural and a misprediction is recoverable but visible.
 - The Anthropic agentic-misalignment work is cited but is an industry research post, not a peer-reviewed paper. If submitting to a venue with stricter citation norms, a 2025-2026 academic citation of similar findings would strengthen the use of this datapoint.
 - The HEAL "dishwasher example" in §4.4 is paraphrased from a search-result summary. Confirmed the structural shape of the example via the paper's HTML render (linked in `_citations.json`), but King should double-check the verbatim example before quoting in submission.
 - §6.4 says "above the 0.7 threshold" for MMLU — this threshold is a stipulation rather than a derived value. Either cite a precedent for the threshold or hedge to "above some saturation threshold."

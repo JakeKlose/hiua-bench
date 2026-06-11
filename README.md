@@ -28,8 +28,8 @@ Work in progress. Most recent state is captured in [PROGRESS_v2.md](PROGRESS_v2.
 │   ├── inspect_trials.py                        ← qualitative trial inspector
 │   └── run_*.jsonl                              ← trial data (Groq pilot + partial selfhost)
 ├── paper_drafts/v1/overleaf/
-│   ├── paper_long.tex                           ← CS321M term paper (em-dash style)
-│   ├── paper_long_koyejo.tex                    ← submission version (Koyejo lab style)
+│   ├── paper_long.tex                           ← CS321M term paper (original draft)
+│   ├── paper_long_v2.tex                        ← submission version (revised style)
 │   ├── paper_workshop.tex                       ← workshop cut
 │   ├── empirical_pilot_template.tex             ← slot-fill template for results section
 │   └── references.bib                           ← 40 verified citations
@@ -83,11 +83,38 @@ The design factorially crosses:
 - 3 prohibition-salience levels (early-system, mid-system, tool-docstring)
 - 4 domains (file operations, communication, financial, embodied)
 
-yielding 36 base items. The pilot uses a 24-item subset. Three scores per trial: outcome (regex + refusal-prefix + LLM-judge fallback), hallucination type (3-judge LLM ensemble), and recall probe (substring + judge fallback). The 2×4×2 cell structure partitions HIUA from KBV and from lucid compliance.
+yielding 36 base items. The v2 pilot uses the full 36-item bank across a 13-model panel (468 trials). Three scores per trial: outcome (regex + refusal-prefix + LLM-judge fallback), hallucination type (2-judge LLM ensemble after the third Groq-served judge hit a daily request cap), and recall probe (substring + judge fallback). The 2×4×2 cell structure partitions HIUA from KBV and from lucid compliance.
+
+## Roadmap
+
+The v2 pilot reported in `paper_long_v2.tex` establishes empirical realizability and provides preliminary G-theory reliability (Ep²=0.82, Φ=0.75). The following extensions are in scope for v3 work.
+
+**Statistical power and reliability.**
+- Multi-seed runs (≥3 seeds per item × model) to populate the occasion facet of the G-study; current single-seed design forecloses within-trial variance components.
+- Paraphrase expansion (4 paraphrases per item via `paraphrase.py`) to test paraphrase-stability of per-item rates and surface item-construction effects.
+- Full Generalizability-Theory analysis via R's `gtheory` package, replacing the approximate Henderson method-of-moments decomposition in `analyze.py`. The decomposition would add standard errors on variance components and proper D-study projections.
+
+**Construct extensions.**
+- Embodied items in AI2-THOR or HEAL-derived scenes to test the digital-to-embodied transfer claim that the consequential-aspect argument rests on.
+- Harder recall probes (asking for specific filename patterns, deadlines, scope conditions) to populate the empty `violation-not-recalled` cell. The current item bank uses short prominent prohibitions that paraphrase-stable probes can recover at near-ceiling rates.
+- Mid-salience item bank expansion. The 12 mid-salience items added in v2 (`items_mid.json`) are the minimum to support the three-level factorial. A larger bank with more lexical variation per cell would strengthen the salience-effect claim.
+
+**Panel extensions.**
+- Frontier closed models (GPT-4 class, Claude class, Gemini class) in the actor panel. The nomological-network predictions in §4.4 and Appendix D currently remain untested at frontier scale.
+- Within-family scaling pairs (e.g., Qwen 2.5 family at 7B, 14B, 32B, 72B) to support capability-correlated predictions.
+- Cross-provider replication on additional models. The v2 pilot covers Llama 3.1 8B, Llama 3.3 70B, GPT-OSS 20B, and GPT-OSS 120B served both via hosted endpoint and self-hosted vLLM. Extending this to more models would let us factor out provider effects more rigorously.
+
+**Judge ensemble hardening.**
+- Replace the Groq-free-tier Llama 3.3 70B Versatile judge with one that does not hit daily-request caps. Candidates: paid-tier Groq, Anthropic Claude Sonnet (used as one of two judges in v2), or a self-hosted vLLM Llama judge served via the same infrastructure as the actor panel.
+- Human spot-check calibration on 10% of trials, recommended by the design plan in §4.3 but not run in v2. Inter-rater human-vs-ensemble agreement would let the substantive-validity argument rest on something stronger than two-judge LLM agreement.
+
+**Reproducibility infrastructure.**
+- Inspect Evals scaffolding wrapper for the items + scoring stack. The current `experiment/modal_app.py` orchestration is HIUA-specific; an Inspect Evals task definition would let other researchers reproduce or extend the pilot using their own model panel.
+- Item bank versioning. The current `items.json` (24 items) and `items_mid.json` (12 items) are joined into `items_36.json` for analysis. A canonical versioned `items.json` with clear inclusion criteria would simplify external reproduction.
 
 ## Citation
 
-Pending. Term paper draft in `paper_drafts/v1/overleaf/paper_long_koyejo.tex`.
+Pending. Term paper draft in `paper_drafts/v1/overleaf/paper_long_v2.tex`.
 
 ## License
 

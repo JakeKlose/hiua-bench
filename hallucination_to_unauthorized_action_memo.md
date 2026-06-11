@@ -187,7 +187,7 @@ Facets: persons (models) × items (the 36 base items) × raters (3 LLM-judges + 
 ## 6. Recommended next steps
 
 1. **Decide deliverable scope by end of week 2** — Option A vs. C. The §5 design sketch is enough to commit to either.
-2. **Write the construct-definition section first** (§5.1). Almost every weakness in the existing literature comes from skipping this. Show this section to Koyejo (or your project TA) before writing anything else.
+2. **Write the construct-definition section first** (§5.1). Almost every weakness in the existing literature comes from skipping this. Show this section to your project TA or course staff before writing anything else.
 3. **For Option A:** structure the paper as Messick six-aspect audit. The §3 critique above is the skeleton.
 4. **For Option C:** start with Inspect Evals as scaffolding (it already implements AgentHarm); your items plug in as a new task. Budget ~20 hours for environment setup, ~20 hours for item authoring, ~10 hours for runs and analysis.
 5. **One sentence to write down now and refer back to:** *"My benchmark must distinguish hallucination-induced violations from lucid violations; if it cannot, I am measuring a confounded construct."* This is your validity north star.

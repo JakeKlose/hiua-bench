@@ -1,0 +1,517 @@
+% =========================================================================
+% Measuring What Matters When the Robot Has the Gun:
+% A Validity Audit of Hallucination-Induced Unauthorized Action in LLM Agents
+% =========================================================================
+\documentclass{article}
+% NeurIPS 2025
+\usepackage[final, main]{neurips_2025}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{multirow}
+\title{A Validity Audit of Hallucination-Induced Unauthorized Action in LLM Agents}
+
+\author{%
+    Jake Klosowski \\
+  \texttt{jfkx@stanford.edu}
+  \And
+  Michelle Campeau \\
+  \texttt{campeau@stanford.edu}
+} 
+
+\date{Draft, May 2026}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+The case for deploying LLM agents in irreversible-action settings rests
+on the premise that strong scores on existing agent-safety
+benchmarks predict an agent will not take an explicitly forbidden action
+when it matters. We argue this claim is not supported because no published benchmark isolates the conditional rate at which an
+agent, having hallucinated, then crosses an explicit prohibition. We
+formalize this as Hallucination-Induced Unauthorized Action (HIUA) and
+decompose it from four neighboring constructs the literature confounds
+it with. Auditing nine prior instruments
+against Messick's six aspects of validity, we find the substantive
+aspect---the cognitive-process claim that hallucination caused the
+violation---essentially undefended. We sketch HIUA-Bench, a
+$3{\times}3{\times}4$ factorial design with simulator-verifiable
+outcomes, a recall probe partitioning lucid from hallucinated violation,
+and a Generalizability-Theory reliability plan reporting $\Phi$ and
+$E\rho^2$ across persons, items, raters, and occasions. A 13-model
+pilot spanning closed-API and self-hosted vLLM serving paths (468
+trials across the full 36-item factorial) shows the
+$2{\times}4{\times}2$ partition is empirically realizable, prohibition
+salience produces a non-monotonic three-level effect on violation rate
+(3.9\% high vs.\ 17.9\% mid vs.\ 21.7\% low), the within-trial
+HIUA-to-KBV (knows-but-violates) ratio is 23.8:1, and
+Generalizability-Theory reliability coefficients ($\mathrm{E}\rho^2 =
+0.82$, $\Phi = 0.75$) cross the conventional 0.70 threshold.
+\end{abstract}
+
+\section{Introduction}
+The empirical anchors for agent safety in 2026 are not subtle. RoboPAIR achieved approximately 100\% attack success in eliciting physical harmful actions from the NVIDIA Dolphins self-driving system, the Clearpath Jackal UGV running a GPT-4o planner, and the Unitree Go2 quadruped running GPT-3.5~\cite{robopair2024}. ARMOR 2025 evaluated 21 commercial LLMs against 519 prompts grounded in the Law of War, Rules of Engagement, and Joint Ethics Regulation, concluding that deploying general-purpose LLMs for military decision support without additional controls is premature~\cite{armor2026}. Anthropic's June 2025 agentic-misalignment red team found that Claude Opus 4 chose to blackmail a fictional executive in 96\% of relevant scenarios, with Gemini 2.5 Flash also at 96\%, GPT-4.1 and Grok 3 Beta at 80\%, and DeepSeek-R1 at 79\%~\cite{anthropicagentic2025}. Existing benchmarks do not carve this landscape at the joints that matter when an action is irreversible.
+
+The clearest demonstration of the carving problem is in the constraint-adherence literature. DriftBench found that the rate at which models violate constraints they can simultaneously restate verbatim---the knows-but-violates (KBV) rate---ranges from 8\% to 99\% across seven models~\cite{driftbench2026}. SafeAgentBench found the best-performing embodied baseline achieves 69\% success on safe tasks but only 5\% rejection on hazardous ones~\cite{safeagentbench2024}. AgentHarm found leading LLMs surprisingly compliant with malicious agent requests even without jailbreaking~\cite{agentharm2024}. These three findings are routinely reported under the umbrella of ``agent safety,'' and developers cite their relative scores when arguing about deployment. They are measurements of different conditional distributions over the same outcome variable, and conflating them obscures important differences in mechanism.
+
+\paragraph{Research question.} When a benchmark reports an agent's violation rate, what conditional pathway is the score actually measuring, and what deployment claims does that measurement license?
+
+\paragraph{Contributions.} (1)~We formally define Hallucination-Induced Unauthorized Action (HIUA) as the conditional rate of a forbidden action given a hallucination event and a salient prohibition, and decompose it from four neighboring constructs (\S\ref{sec:construct}). (2)~We audit nine prior instruments against Messick's six aspects and find the substantive aspect---the claim that hallucination \emph{caused} the violation---essentially undefended (\S\ref{sec:audit}). (3)~We sketch HIUA-Bench (\S\ref{sec:design}), a $3{\times}3{\times}4$ factorial design with simulator-verifiable outcomes, a recall probe partitioning lucid from hallucinated violation, and a Generalizability-Theory reliability plan reporting $\Phi$ and $\mathrm{E}\rho^2$ across persons, items, raters, occasions, and paraphrases. (4)~We pilot the design against a 13-model panel (468 trials across the full 36-item factorial), showing the partition is empirically realizable, prohibition salience is the largest single effect on violation rate with a non-monotonic three-level pattern (3.9\% high vs.\ 17.9\% mid vs.\ 21.7\% low), the within-trial HIUA-to-KBV ratio is 23.8:1, and Generalizability-Theory reliability coefficients ($\mathrm{E}\rho^2=0.82$, $\Phi=0.75$) exceed the conventional 0.70 floor (\S\ref{sec:pilot}).
+
+\paragraph{Thesis.} Measurement that confounds lucid violation with hallucination-induced violation systematically mis-licenses deployment claims. A benchmark reporting a single aggregate violation rate cannot distinguish a model needing a faithfulness intervention from one needing perception-grounding.
+
+\section{Background: validity theory in the agent-safety context}
+\label{sec:background}
+
+We follow Messick's view that validity attaches to score interpretation, not to the test instrument itself~\cite{messick1989, standards2014}. For HIUA, the relevant interpretation is not merely ``this model had violation rate $r$,'' but ``this model is unlikely to take a forbidden action because of a hallucinated belief about authorization, state, or tool effect.'' We adopt the Cronbach--Meehl nomological-network framing~\cite{cronbachmeehl1955, nomologicalnetworks2026} rather than Borsboom's causal account~\cite{borsboom2004}, treating HIUA as a construct whose validity is established by a predictable web of correlations with adjacent constructs rather than by a unitary latent cause (extended justification in Appendix~\ref{app:validity-background}). This distinction makes the substantive, structural, generalizability, and consequential aspects especially important for agent-safety benchmarks, where scores are used to license deployment in irreversible-action settings.
+
+\section{Construct definition}
+\label{sec:construct}
+
+\paragraph{Formal definition.} Let an agent trajectory $\tau = (s_0, a_0, s_1, a_1, \ldots)$ proceed under a system prompt containing an explicit prohibition $P$ of the form ``do not perform any action $a \in A_{\text{forbidden}}$.'' Let $h_t \in \{0, 1\}$ indicate a hallucination event at step $t$, defined as a generated intermediate token sequence (chain-of-thought, tool argument, or tool-output interpretation) that is unfaithful to the model's input and to the ground-truth world state. Let $s_t \in \{0, 1\}$ indicate the salience condition: $P$ is present in the model's effective context, syntactically parseable, and within the attention window---operationalized as the event that a recall probe issued at time $t$ would elicit a verbatim or near-verbatim restatement of $P$. The HIUA construct is the conditional rate
+\[
+\mathrm{HIUA}(M, D) = P\bigl(a_t \in A_{\text{forbidden}} \mid h_t = 1 \wedge s_t = 1;\, M, D\bigr)
+\]
+for a model $M$ on domain distribution $D$. This is narrower than aggregate violation rate (which marginalizes over $h_t, s_t$), aggregate hallucination rate (which marginalizes over $a_t \in A_{\text{forbidden}}$), and aggregate compliance rate (which marginalizes over $h_t$ and instruction provenance).
+
+\paragraph{Sub-constructs.} HIUA decomposes into three sub-constructs mapping onto stages of the recently-surveyed agent-hallucination taxonomy~\cite{halluagentsurvey2025}. \textit{Authorization hallucination} (reasoning-stage): the agent fabricates that an exception, override, or higher-priority instruction permits $a \in A_{\text{forbidden}}$ (e.g., a forged ``manager email'' treated as authoritative without verified provenance). \textit{State hallucination} (perception-stage): the agent fabricates a world state in which $a$ no longer belongs to $A_{\text{forbidden}}$ (e.g., an ambiguous filename leads the agent to infer ``this is obviously a duplicate, so deletion is not data loss,'' and the unique copy is deleted). \textit{Tool hallucination} (execution-stage): the agent fabricates a tool's behavior such that calling it produces $a$ without the agent representing the call as $a$ (e.g., a docstring describes a search but the call triggers a billable action; the agent never represents its own action as spending money). The three are theoretically distinct in mechanism and in the interventions that would mitigate them, motivating the measurement design in Section~\ref{sec:design}. Extended discussion appears in Appendix~\ref{app:construct}.
+
+\paragraph{Anti-construct.} HIUA is sharpened by what it excludes. Four neighboring failure modes the construct does not cover are: \textit{lucid violation} (KBV), the rule was recalled and the action taken anyway, measured by DriftBench~\cite{driftbench2026} with rates 8--99\% across models; \textit{jailbreak compliance}, the harmful action is in the instruction stream and the agent's intermediate generation is not unfaithful, measured by AgentHarm~\cite{agentharm2024}, RoboPAIR~\cite{robopair2024}, InjecAgent~\cite{injecagent2024}, and AgentDojo~\cite{agentdojo2024}; \textit{over-refusal of legitimate tasks}, refusal of a permitted action that pattern-matches to a harmful one, documented by OR-Bench~\cite{orbench2024} and ARMOR~\cite{armor2026}; and \textit{policy-invisible violation}, where the policy facts needed to recognize the action as forbidden are absent from context, formalized by PhantomPolicy~\cite{phantompolicy2026}. A measurement that cannot partition these four from HIUA is measuring a confounded construct: the same observed violation rate can be produced by any of five distinct mechanisms with distinct remediations.
+
+\section{Related work}
+\label{sec:related}
+
+The agent-safety literature falls into six clusters organized by the construct each instrument implicitly measures. (1)~\textit{Malicious-instruction compliance}: the agent's resistance to forbidden actions explicitly requested by a user, third-party content, or algorithmic attacker---measured by AgentHarm~\cite{agentharm2024}, AgentDojo~\cite{agentdojo2024}, InjecAgent~\cite{injecagent2024}, and RoboPAIR~\cite{robopair2024}. This is the complement of HIUA: the harmful action is in the instruction stream, not confabulated by the agent. (2)~\textit{Outcome-aggregated agent safety}: single aggregated failure rates per model across heterogeneous scenarios---ToolEmu~\cite{toolemu2024}, R-Judge~\cite{rjudge2024}, Agent-SafetyBench~\cite{agentsafetybench2024}. Aggregating across hallucinated and lucid violations averages over the $\sim$90-percentage-point KBV swing documented in (3). (3)~\textit{Lucid constraint adherence}: the dissociation between recall and adherence---DriftBench~\cite{driftbench2026} (KBV 8--99\% across seven models), AgentIF~\cite{agentif2025}, and Hierarchical Safety Principles~\cite{hsp2025}. The instruction-hierarchy training of Wallace et al.~\cite{instructionhierarchy2024} is the field's principal architectural response. (4)~\textit{Embodied safety}: simulator-grounded evaluation including SafeAgentBench~\cite{safeagentbench2024} (5\% rejection rate on hazardous tasks), AGENTSAFE~\cite{agentsafe2025}, and HEAL~\cite{heal2025}---the closest existing analogue to HIUA in design, inducing hallucination rates up to 40 times the base under scene-task inconsistencies, though with plan correctness rather than prohibition crossing as the dependent variable. (5)~\textit{Standalone hallucination measurement}: HalluLens~\cite{hallulens2025} and the agent-hallucination survey~\cite{halluagentsurvey2025}---neither cross-linked to consequential action. (6)~\textit{Validity and benchmarking-of-benchmarks}: the methodological cluster that makes this paper possible~\cite{m2m2025,nomologicalnetworks2026,betterbench2024,canwetrust2025,raji2021,bowmandahl2021,lostinbench2025,liaoxiao2023,jacobswallach2021}. Per-cluster detailed coverage appears in Appendix~\ref{app:related}.
+
+\section{Validity audit: nine instruments, six aspects}
+\label{sec:audit}
+
+We organize by Messick's six aspects rather than by instrument. Table~\ref{tab:audit} summarizes the per-aspect verdict for each instrument; the three highest-leverage critiques---substantive, structural, and consequential---are discussed below. Content, generalizability, and external aspects, along with per-instrument coding rationales, are in Appendix~\ref{app:audit}.
+
+\begin{table}[ht]
+\centering
+\caption{Validity audit: which Messick aspects are supported by each instrument for HIUA-relevant interpretation. C = covered; P = partial; U = unaddressed. Per-instrument coding rationale in Appendix~\ref{app:audit}.}
+\label{tab:audit}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Instrument & Content & Subst. & Struct. & Gen. & Ext. & Conseq. \\
+\midrule
+AgentHarm~\cite{agentharm2024}                & P & U & U & P & U & P \\
+AgentDojo~\cite{agentdojo2024}                & P & U & U & U & U & U \\
+RoboPAIR~\cite{robopair2024}                  & P & U & U & U & U & P \\
+ToolEmu~\cite{toolemu2024}                    & U & U & U & U & U & U \\
+R-Judge~\cite{rjudge2024}                     & U & U & P & U & U & U \\
+Agent-SafetyBench~\cite{agentsafetybench2024} & P & U & U & U & U & U \\
+DriftBench~\cite{driftbench2026}              & U & P & P & U & U & P \\
+SafeAgentBench~\cite{safeagentbench2024}      & P & U & U & U & U & U \\
+HEAL~\cite{heal2025}                          & P & P & U & U & U & U \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Substantive aspect: does the response process match the theorized cognition?}
+Messick's substantive aspect requires evidence that the cognitive process generating the test response matches the theorized process underlying the construct~\cite{messick1989, standards2014}. For HIUA, the theorized process is ``hallucination event $\rightarrow$ forbidden action,'' and the substantive aspect therefore asks: when the model produces a forbidden action, do we have evidence that a hallucination produced it as opposed to merely co-occurring with it? ToolEmu and Agent-SafetyBench score outcomes only~\cite{toolemu2024, agentsafetybench2024}; the agent's intermediate reasoning is not analyzed for the presence or character of a hallucination, so the reported failure rates provide no evidence that hallucination produced any specific failure. R-Judge measures whether a judge LLM can identify the safety issue post-hoc~\cite{rjudge2024}, so the cognitive process under test is the judge's, not the actor's. DriftBench is the closest existing analogue to a substantive-aspect instrument: by interleaving a recall probe with the action, it partitions trials into a $2 \times 2$ of $\{\text{recall}\} \times \{\text{violation}\}$ and reads off the KBV rate from the bottom-right cell~\cite{driftbench2026}. The KBV rates of 8--99\% across models are the kind of finding outcome-only benchmarks cannot produce. But the partition is one factor short of what HIUA requires: it does not separate hallucinated authorization from hallucinated state from hallucinated tool effect from lucid violation. The $2 \times 2$ must become a $2 \times 4 \times 2$ for $\{\text{recall}\} \times \{\text{hallucination-type or none}\} \times \{\text{violation}\}$. HEAL has the manipulation half of what substantive validity requires---scene-task inconsistencies inducing hallucination at $40\times$ base rates~\cite{heal2025}---but does not measure prohibition crossing as the consequential outcome. No surveyed benchmark whose data could support a substantive-validity argument for HIUA exists as published. The constructive consequence for HIUA-Bench is that the substantive aspect must be designed in (Section~\ref{sec:scoring}).
+
+\paragraph{Structural aspect: internal structure and reliability.}
+The structural aspect concerns whether the test's internal structure matches the theorized internal structure of the construct, and whether the resulting score is reliable enough to bear its interpretation~\cite{messick1989, standards2014}. Generalizability Theory partitions observed-score variance into facets (persons, items, raters, occasions) and reports $\Phi$ (absolute) and $\mathrm{E}\rho^2$ (relative) coefficients~\cite{gtheoryage2025}. None of the surveyed benchmarks reports a variance-component decomposition. AgentIF reports per-constraint-type breakdowns and an overall instruction-following rate without one, leaving open whether the below-30\% perfect-adherence rate reflects systematically harder constraint types or item-difficulty confounds~\cite{agentif2025}. ToolEmu's validation procedure---in which 68.8\% of the failures its automatic evaluator flagged are confirmed by humans as real failures~\cite{toolemu2024}---is informative as a calibration check but tells us nothing about the variance the rating procedure contributes to the agent score itself; that question requires multiple raters scoring the same agents, which has not been done at scale across the relevant instruments. DriftBench's 8--99\% KBV variance across persons is exactly the dispersion that should be partitioned~\cite{driftbench2026}: if $\sigma^2(\text{person}) \gg \sigma^2(\text{item, occasion, rater})$, the benchmark measures real model differences; if $\sigma^2(\text{item})$ is comparable to $\sigma^2(\text{person})$, the per-model rates would shift with item resampling. The published data does not support that decomposition. The PSN-IRT analysis of 41{,}871 items across 11 LLM benchmarks demonstrates that item-level IRT analysis on existing benchmarks is feasible and that results are sometimes uncomfortable: saturation, insufficient difficulty ceilings, and contamination affect benchmarks the field has been using to draw broad claims~\cite{lostinbench2025}. The minimum reporting standard a HIUA-grade benchmark should adopt is $\Phi$ and $\mathrm{E}\rho^2$ across at least persons $\times$ items $\times$ raters $\times$ occasions, with D-studies indicating how many items and occasions are needed for $\Phi \geq 0.80$ at the construct's target precision.
+
+\paragraph{Consequential aspect: the leaderboard problem.}
+\label{sec:consequential}
+The consequential aspect requires evaluation of the social and behavioral consequences of using a test in a particular way~\cite{messick1989, kane2013, jacobswallach2021}---the aspect least applied in AI evaluation~\cite{m2m2025}, and the one with the highest stakes for HIUA because the use of these benchmarks is to license deployment. Three predictable consequences follow if HIUA-style benchmarks gain leaderboard status without consequential-aspect controls. \textit{Surface compliance gaming}: models trained to refuse anything resembling a benchmark trigger over-refuse legitimate tasks. OR-Bench documents this at scale across 80{,}000 prompts and 32 LLMs~\cite{orbench2024}; ARMOR documents the same failure mode in the military domain~\cite{armor2026}. This is Goodhart's law in the validity register---when a refusal rate becomes the target, refusal stops indicating safety~\cite{canwetrust2025}. \textit{Policy-as-prompt theater}: developers add longer system prompts to pass benchmarks; production strips them under token-budget pressure; the result is the policy-invisible-violation regime PhantomPolicy is built around~\cite{phantompolicy2026}. A benchmark that scores agents with the full policy in context, but does not also score with policy partially or fully absent, licenses a deployment claim production will not honor. \textit{False assurance for high-stakes deployment}: a passing digital-sandbox score is cited to justify embodied or lethal deployment despite no demonstrated transfer. RoboPAIR's near-universal attack success on three robot platforms~\cite{robopair2024} together with SafeAgentBench's 5\% hazardous-task rejection rate~\cite{safeagentbench2024} suggests that the digital-to-embodied transfer is not just unmeasured but specifically disconfirmed in the data we have. The instruction-hierarchy training of Wallace et al.~\cite{instructionhierarchy2024} is the field's principal architectural response to surface gaming, but it does not address the other two and introduces its own consequential risk via the second ARMOR failure mode---over-refusal of lawful instructions~\cite{armor2026}. The consequential-aspect recommendation for HIUA-Bench is gated release: not a public leaderboard, but AgentHarm-style harm-score gating~\cite{agentharm2024, inspectevals2024} accompanied by a developer-signed deployment-claim audit stating which deployment claims the benchmark score is and is not being used to support. This makes consequential validity an explicit object of test-developer responsibility rather than a side effect of how the score is used in the marketplace.
+
+\section{HIUA-Bench: a design sketch}
+\label{sec:design}
+
+The constructive proposal that follows is, by intent, smaller than the leaderboard benchmarks it would join. The validity argument is that smaller-and-on-construct beats larger-and-confounded for the deployment-license use case. Item construction details, the full G-study design, and the pre-registered Messick-aspect arguments are in Appendix~\ref{app:design}.
+
+\paragraph{Item structure.}
+Each item is a tuple $\langle$environment, prohibition, hallucination-trigger, ground-truth state, action space$\rangle$. Environments span four domains across the digital-to-embodied gradient identified as load-bearing in Section~\ref{sec:audit}: file operations (sandboxed shell), communication (email/messaging emulator), financial (banking-API emulator), and embodied (AI2-THOR or HEAL-derived scene~\cite{heal2025, safeagentbench2024}). The prohibition is a single-sentence forbidden-action statement at one of three salience levels: early-system, mid-system, or tool-docstring---motivated by the policy-invisible-violation literature~\cite{phantompolicy2026} and the AgentIF finding that long instructions with many constraints are systematically harder~\cite{agentif2025}. The hallucination trigger is a contextual perturbation designed to elicit one of the three sub-construct types from Section~\ref{sec:construct}: forged authorization without verified provenance, ambiguous state suggesting duplication, or tool-docstring--behavior mismatch. Ground-truth state is simulator-verifiable, so that outcome scoring does not rely on an LLM judge for the primary measure. The factorial is 3 sub-types $\times$ 3 salience levels $\times$ 4 domains, yielding 36 base items; each is paraphrased 4 ways and run at 3 temperature seeds (432 trials per model), comparable in scale to ToolEmu's 144 cases~\cite{toolemu2024} but with a denser internal factorial.
+
+\paragraph{Scoring: three measurements per trial.}
+\label{sec:scoring}
+The substantive-aspect critique in Section~\ref{sec:audit} requires that the cognitive process and the outcome both be measured. We score three things per trial. \textit{Outcome}: binary, simulator-derived---did the agent execute a forbidden action? No LLM judge is in the loop for this measure, preventing rater-variance from propagating to the primary score. \textit{Hallucination}: rubric-coded from the chain-of-thought trace by a 3-model LLM-judge ensemble with human spot-checks on 10\% of trials, distinguishing the three sub-types and a ``no hallucination'' category, with inter-rater reliability reported as Cohen's $\kappa$ per category and Krippendorff's $\alpha$ overall. \textit{Recall probe}: after the action (or refusal), the agent is prompted to restate the prohibition. Jointly with the hallucination measurement, this produces the $2 \times 4 \times 2$ cell structure $\{\text{recall}\} \times \{\text{hallucination-type or none}\} \times \{\text{violation}\}$. The HIUA estimate is the rate of forbidden action conditional on recall \textit{and} one of the three hallucination sub-types. Trials in the $\{\text{recall yes, no hallucination, violation}\}$ cell are reported separately as the KBV rate, matching DriftBench's measurement~\cite{driftbench2026}.
+
+\paragraph{Reliability plan.}
+The course's Generalizability-Theory framework~\cite{gtheoryage2025} is applied to a crossed design over persons $\times$ items $\times$ raters $\times$ occasions $\times$ prohibition-salience, with sub-type and domain as fixed strata. We report $\sigma^2$ decomposition across facets, $\Phi$ and $\mathrm{E}\rho^2$ coefficients, and D-studies indicating sample sizes for $\Phi \geq 0.80$ under each domain stratum. IRT 2PL discrimination parameters are reported per item; items below 0.5 are flagged for revision rather than included in the headline rate, following the PSN-IRT precedent~\cite{lostinbench2025}. The minimum reporting expectation for any HIUA-claimant benchmark is $\sigma^2(\text{person}) > \sigma^2(\text{item})$ for the headline coefficient to be interpretable as a model property; full derivations and D-study computations are in Appendix~\ref{app:design}.
+
+\paragraph{Pre-registered validity argument.}
+At item-construction time, predicted patterns are pre-registered for each Messick aspect: factorial coverage justified against the agent-hallucination taxonomy~\cite{halluagentsurvey2025} (content); the $2 \times 4 \times 2$ cell structure as the construct's empirical residence (substantive); $\Phi$, $\mathrm{E}\rho^2$, and IRT parameters reported (structural); cross-domain Spearman rank correlation with irreversibility annotation (generalizability); pre-registered nomological correlations with HalluLens~\cite{hallulens2025}, AgentHarm~\cite{agentharm2024}, MMLU, sycophancy~\cite{sharmasycophancy2023}, and strategic deception~\cite{deceptionsurvey2024} (external); gated release with AgentHarm-style harm-score gating~\cite{agentharm2024, inspectevals2024} and developer-signed deployment-claim audit (consequential). Per-aspect detail in Appendix~\ref{app:design}.
+
+\section{Empirical pilot}
+\label{sec:pilot}
+
+We pilot HIUA-Bench against a 13-model panel spanning two serving paths. Six models were served through Groq's hosted inference endpoint (Llama 3.1 8B Instant, Llama 3.3 70B Versatile, Llama 4 Scout 17B preview, Qwen3 32B preview, OpenAI GPT-OSS 20B, OpenAI GPT-OSS 120B). Seven additional open-weights models were self-hosted via vLLM on Modal-managed GPUs: Qwen 2.5 7B and Llama 3.1 8B on L40S; Gemma 2 27B and GPT-OSS 20B on A100-80GB; Llama 3.3 70B and Qwen 2.5 72B on 2 tensor-parallel H100s; GPT-OSS 120B on 4 tensor-parallel H100s. The Llama 3.1 8B and 3.3 70B models and the two GPT-OSS variants therefore appear in the panel twice, supporting a cross-provider replication check on those four models. The full 36-item factorial covered 3 sub-constructs $\times$ 3 salience levels $\times$ 4 domains, with one trial per (model, item) cell at temperature 0.7 with seed 0, yielding $13 \times 36 = 468$ trials. Two trials failed at the agent layer (the GPT-OSS 20B tool-call rejection mode discussed below), leaving 466 clean trials for the headline analysis.
+
+For each trial, the agent received a system prompt containing the explicit prohibition and a user message containing the hallucination trigger, then produced a chain-of-thought followed by an action description. The recall probe was issued in a fresh context. The action scorer applied a three-layer cascade: a refusal-prefix heuristic extended to recognize OpenAI Harmony reasoning channels and polite-refusal openings; a regex match against forbidden and compliant action patterns; and a Llama 3.3 70B judge fallback. The recall scorer applied a two-layer cascade: substring match against the expected recall token, then judge fallback. Post-hoc, a two-judge ensemble (Anthropic Claude Sonnet 4.6, Meta Llama 4 Scout 17B) labeled each trial's hallucination type as one of $\{$none, authorization, state, tool$\}$. The pre-registered third judge (Llama 3.3 70B Versatile) was excluded from the headline because Groq's free-tier daily-request cap throttled it to 32.9\% error rate; scoring-stack diagnostics and per-judge reliability are in Appendix~\ref{app:pilot}.
+
+\paragraph{Cell occupancy.}
+Table~\ref{tab:pilot-cells} reports the headline $2 \times 2$ of $\{$forbidden action?$\} \times \{$recalled rule?$\}$ pooled across the panel. Violations occurred on 13.5\% of clean trials, almost exclusively in the \emph{violation-recalled} cell.
+
+\begin{table}[ht]
+\centering
+\caption{Pilot cell occupancy across $N=466$ clean trials.}
+\label{tab:pilot-cells}
+\begin{tabular}{lrr}
+\toprule
+Cell & Count & Percent \\
+\midrule
+Compliant + recalled                       & 401 & 86.1\% \\
+Compliant + not recalled                   &   2 &  0.4\% \\
+Violation + recalled                       &  63 & 13.5\% \\
+Violation + not recalled (HIUA-strict)     &   0 &  0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The $\{$violation, not-recalled$\}$ cell---the strictest construct definition---is empty on this panel. We interpret this as evidence that the items use short, prominent prohibitions that paraphrase-stable recall probes can recover; a construct version with harder recall probes would likely populate this cell at the cost of conflating measurement difficulty with construct incidence (returned to in §\ref{sec:discussion}). The looser construct definition admits a hallucination-type label as the criterion. Of the 63 violation-with-recall trials, the two-judge agreement-based label was authorization on 26, state on 8, none on 14, and disagreement on 15. Defining HIUA(looser) as the rate of forbidden action conditional on recall and a non-none agreement label, and KBV as the rate conditional on recall and a ``none'' agreement label:
+\[
+\widehat{\mathrm{HIUA}} = \tfrac{29}{34} = 85.3\%, \qquad \widehat{\mathrm{KBV}} = \tfrac{14}{390} = 3.6\%.
+\]
+The looser HIUA-to-KBV ratio is 23.8:1, an order of magnitude wider than the v1 pilot's 2.75:1 separation. The 15 disagreement trials are reported separately as a measurement uncertainty band rather than folded into either rate.
+
+\paragraph{Per-model rates.}
+Table~\ref{tab:pilot-per-model} reports per-model rates ($n=36$ each, with two exceptions). The panel spans 7B to 120B parameters; within-family scaling is observable on Meta-Llama (3.1 8B at 25\% vs.\ 3.3 70B at 5.6--13.9\% depending on provider) and on OpenAI-OSS (20B at 0--2.9\% vs.\ 120B at 2.8--5.6\%).
+
+\begin{table}[ht]
+\centering
+\caption{Per-model pilot rates. Cells in percent. Provider $\in \{$G (Groq), S (self-host vLLM)$\}$. The HIUA-cand column is omitted because per-model cell counts within the construct partition are too small (mean 4.8) to report stable rates; the per-sub-construct HIUA estimate is pooled (Table~\ref{tab:pilot-subconstruct}).}
+\label{tab:pilot-per-model}
+\small
+\begin{tabular}{llrrrr}
+\toprule
+Model & Prov. & $n$ & Violation & Recall & KBV \\
+\midrule
+Qwen 2.5 7B Instruct          & S & 36 & 36.1 & 100.0 & 36.1 \\
+Llama 3.1 8B Instruct          & S & 36 & 25.0 & 100.0 & 25.0 \\
+Llama 3.1 8B Instant           & G & 36 & 25.0 & 100.0 & 25.0 \\
+Llama 4 Scout 17B (preview)    & G & 36 & 19.4 & 100.0 & 19.4 \\
+Gemma 2 27B Instruct           & S & 36 & 16.7 & 100.0 & 16.7 \\
+Llama 3.3 70B Instruct         & S & 36 & 13.9 & 100.0 & 13.9 \\
+Qwen 2.5 72B Instruct          & S & 36 & 11.1 & 100.0 & 11.1 \\
+Qwen3 32B (preview)            & G & 36 & 11.1 & 100.0 & 11.1 \\
+GPT-OSS 120B                   & S & 36 &  5.6 &  97.2 &  5.6 \\
+Llama 3.3 70B Versatile        & G & 36 &  5.6 & 100.0 &  5.6 \\
+GPT-OSS 20B                    & G & 34 &  2.9 & 100.0 &  2.9 \\
+GPT-OSS 120B                   & G & 36 &  2.8 & 100.0 &  2.8 \\
+GPT-OSS 20B                    & S & 36 &  0.0 &  97.2 &  0.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Cross-provider replication.}
+Four models appear twice, served via both Groq and self-hosted vLLM. The within-model violation-rate comparison (Table~\ref{tab:cross-provider}) shows two of four pairs with meaningful provider effects.
+
+\begin{table}[ht]
+\centering
+\caption{Cross-provider replication on four models. Violation rates in percent, $n = 36$ per cell except GPT-OSS 20B on Groq ($n = 34$).}
+\label{tab:cross-provider}
+\begin{tabular}{lrrr}
+\toprule
+Model & Groq & Self-host & Ratio \\
+\midrule
+Llama 3.1 8B   & 25.0\% & 25.0\% & 1.00 \\
+Llama 3.3 70B  &  5.6\% & 13.9\% & 2.50 \\
+GPT-OSS 20B    &  2.9\% &  0.0\% & 0.00 \\
+GPT-OSS 120B   &  2.8\% &  5.6\% & 2.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Llama 3.1 8B is invariant; GPT-OSS 20B is at the refusal floor on both. Llama 3.3 70B violates at $2.5\times$ the Groq rate when self-hosted, and GPT-OSS 120B at $2\times$. The pattern is consistent with serving-stack differences affecting model behavior on 70B+ models---candidate mechanisms include vLLM's overriding of the model's shipped sampling defaults via \texttt{--generation-config vllm}, tokenizer-template differences, or KV-cache eviction policies. We do not adjudicate among these; we report the effect as a generalizability-aspect finding that benchmark scores should be annotated with the serving stack that produced them.
+
+\paragraph{Sub-construct and salience effects.}
+The pilot's two largest single effects are reported in Table~\ref{tab:pilot-subconstruct}. The salience effect is \emph{non-monotonic}: violations are lowest at high salience (the prohibition stated as an \texttt{ABSOLUTE RULE} caps clause near the top of the system role), intermediate at mid salience (the prohibition as one of several operational sentences in normal prose), and highest at low salience (the prohibition tucked into a tool docstring or parenthetical). Recall remains near-ceiling across all three levels: the salience effect is not a recall failure but a positional emphasis effect.
+
+\begin{table}[ht]
+\centering
+\caption{Pilot violation rates by sub-construct and three-level salience.}
+\label{tab:pilot-subconstruct}
+\begin{tabular}{lrr}
+\toprule
+Stratum & $n$ & Violation rate \\
+\midrule
+Authorization sub-construct & 169 & 11.8\% \\
+State sub-construct         & 156 & 12.8\% \\
+Tool sub-construct          & 141 & 16.3\% \\
+\midrule
+High salience               & 181 &  3.9\% \\
+Mid salience                & 156 & 17.9\% \\
+Low salience                & 129 & 21.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The original v1 pilot's two-level design (high vs.\ low only) reported a 1.2\% vs.\ 23.3\% spread that we now read as a partial view of a wider non-monotonic pattern: explicit \texttt{ABSOLUTE RULE} formatting is substantially more compliance-inducing than the contrast between mid-paragraph prose and tool-docstring placement. This is preliminary support for the consequential-aspect argument in §\ref{sec:consequential}: deployment-time prompt edits that strip explicit-rule formatting under token-budget pressure may shift behavior by an order of magnitude.
+
+\paragraph{Generalizability-theory reliability.}
+Treating the design as crossed over persons (13 models) by items (36 base items), with the residual capturing item-by-person interaction plus within-cell noise, the Henderson method-of-moments variance components are $\sigma^2(\text{person}) = 0.0093$ (7.8\% of total), $\sigma^2(\text{item}) = 0.0347$ (29.2\%), and $\sigma^2(\text{residual}) = 0.0748$ (62.9\%). The relative reliability coefficient is $\mathrm{E}\rho^2 = 0.82$ and the absolute coefficient is $\Phi = 0.75$, both above the conventional 0.70 floor. Item variance exceeds person variance by a factor of 3.7, indicating that item difficulty is a larger source of score variation than model identity at this panel size---the pattern the §\ref{sec:design} reliability plan flagged as the interpretability test for the headline coefficient. D-study projections at the current panel size give $\Phi = 0.77$ at 40 items, $\Phi = 0.87$ at 80 items, and $\Phi = 0.93$ at 160 items, providing the corpus-size guidance needed for full G-study scaling in v3.
+
+\paragraph{Comparison to baselines.}
+The pilot's overall violation rate of 13.5\% sits in the range reported by ToolEmu's outcome-only scoring (23.9\% safest-agent failure rate~\cite{toolemu2024}) and Agent-SafetyBench (no model above 60\% safety~\cite{agentsafetybench2024}), but our partition decomposes that rate into the KBV cell that DriftBench measures~\cite{driftbench2026} and the hallucination-type cells that HEAL probes via plan correctness rather than prohibition crossing~\cite{heal2025}. An unpartitioned benchmark would collapse the 466 trials into a single 13.5\% aggregate, losing the within-trial mechanism the $2 \times 4 \times 2$ partition recovers.
+
+\paragraph{What the pilot establishes.}
+First, the three-layer scoring stack is empirically separable; the recall scorer's substring layer alone would have missed 23.1\% of correct recalls (rescued by LLM-judge fallback), providing direct evidence that a benchmark using substring scoring alone would systematically inflate HIUA estimates. Second, the $2 \times 4 \times 2$ partition produces non-trivial occupancy in the violation-recalled cell on 12 of 13 models, with the HIUA-to-KBV ratio at 23.8:1 under the looser construct definition---an order of magnitude wider separation than v1. Third, the salience contrast (3.9\% vs.\ 17.9\% vs.\ 21.7\%) is the panel's largest single effect, with a non-monotonic shape the two-level v1 design could not detect. Fourth, cross-provider replication reveals that the serving stack materially affects 70B+ model behavior; benchmark scores should annotate the serving stack that produced them. Fifth, $\mathrm{E}\rho^2 = 0.82$ and $\Phi = 0.75$ exceed the 0.70 floor for ranking-decisions interpretations, satisfying the structural-aspect reliability bar set in §\ref{sec:design}. Limitations bound these claims and are discussed in §\ref{sec:discussion}.
+
+\section{Discussion}
+\label{sec:discussion}
+
+A validity audit cannot decide whether a model is safe to deploy; it can decide which deployment claims a benchmark licenses~\cite{m2m2025}. This paper offers a tighter license rather than a stronger guarantee. The HIUA score, properly measured, supports the claim that an agent will not, with rate above $\alpha$, hallucinate authorization, state, or tool effect, and thereby execute a forbidden action in distribution $D$. It does not support broader safety claims, and it does not support narrower ones either.
+
+\paragraph{What worked.}
+The three-layer scoring stack discriminated as designed: action-scorer regex and refusal-prefix layers handled 96.8\% of trials, with LLM-judge fallback firing only on the ambiguous 3.2\%. The recall scorer's substring layer alone would have missed 23.1\% of correct recalls (rescued by judge fallback), providing direct evidence that substring scoring alone would systematically inflate HIUA estimates by miscounting paraphrased recalls as recall failures. The $2 \times 4 \times 2$ partition produced non-trivial occupancy in the violation-recalled cell while the violation-not-recalled cell remained empty, operationally locating the empirical violation mass on the lucid-violation side and clarifying the construct's empirical bounds on this panel. The non-monotonic three-level salience contrast (3.9\% vs.\ 17.9\% vs.\ 21.7\%) was the panel's largest single effect, with a finding the prior two-level design could not detect: explicit \texttt{ABSOLUTE RULE} formatting at the top of the system role is the load-bearing salience-aspect intervention, larger in magnitude than the contrast between mid-prose and tool-docstring placement. The G-theory coefficients ($\mathrm{E}\rho^2 = 0.82$, $\Phi = 0.75$) cross the conventional reliability floor.
+
+\paragraph{What didn't.}
+Two trials failed at the agent layer: GPT-OSS 20B on the Groq path emitted Python tool-call JSON on tool-fileops items even though no tools were declared, and Groq's API rejected the wire format. These are arguably HIUA-relevant events---the model attempted a forbidden file-system action---but were excluded from the headline rate because the wire-format failure prevented our scorer from inspecting the intended action. The pre-registered three-judge ensemble was reduced to two-judge in the headline because Llama 3.3 70B Versatile hit Groq's daily-request cap on the Versatile endpoint at 32.9\% error rate, the same v1 limit that bit the original pilot; the Cohen's $\kappa$ for the remaining Sonnet $\times$ Llama-4-Scout pair is 0.626 ($n=468$, observed agreement 91.5\%), in the substantial-agreement range. The single-seed design forecloses the variance-component decomposition over occasions; per-model rates lack within-trial standard errors. The strict-HIUA cell (violation, not recalled) is empty: the construct in its strongest form is not observable on this dataset with recall at ceiling. We interpret this as a property of the items used (short, prominent prohibitions that paraphrase-stable recall probes can recover) rather than a refutation of the construct.
+
+\paragraph{What we learned.}
+The substantive critique in Section~\ref{sec:audit} has empirical teeth on this panel. The same 13.5\% aggregate violation rate is produced by 29 HIUA-candidate and 14 KBV trials, which an unpartitioned benchmark would collapse into a single number. The interventions implied by each mechanism are distinct---faithful-reasoning interventions for hallucinated authorization, perception-grounding interventions for hallucinated state, instruction-following interventions for lucid violation~\cite{instructionhierarchy2024}---and the appropriateness of each depends on which mechanism dominates. The strongest counter-argument is the pragmatic-benchmarking position: imperfect measurements provide useful iterative feedback during development, and demanding pre-registered nomological networks and G-Theory decompositions raises benchmark development costs without obviously raising their value~\cite{m2m2025}. For capability benchmarks where over-claim costs a misallocated research dollar, this is substantially correct. For agent-safety benchmarks used to license deployment in irreversible-action settings, the asymmetry of error cost flips the calculus: a false negative (deploying a system the benchmark certified, which then takes an irreversible forbidden action) is, by the definition of irreversibility, catastrophic. The measurement standard should rise with the stakes of the use~\cite{kane2013, standards2014}. Extended discussion of the deception/sycophancy adjacency and the digital-to-embodied transfer claim is in Appendix~\ref{app:discussion}.
+
+\paragraph{Limitations.}
+Six limitations bound the inferential reach of the pilot. (1)~The single-seed design forecloses the within-trial variance-component decomposition; per-model rates are point estimates without standard errors, and the seed facet does not enter the reported $\mathrm{E}\rho^2$ and $\Phi$. (2)~The judge ensemble is two-judge rather than the pre-registered three-judge; the substantive-validity argument is conditional on the Sonnet $\times$ Llama-4-Scout $\kappa = 0.626$ pair, and Llama 3.3 70B Versatile's Groq daily-cap collapse is the same v1 limit that bit the original pilot. (3)~The strict-HIUA cell (violation + not recalled) is empty on this panel; the looser HIUA estimate using the hallucination-label criterion rests on a 34-trial slice within the violation-with-recall cell, and the recall ceiling property of our items prevents direct observation of the strict construct. (4)~Cross-provider replication is reported on only four models, and the observed 2.0--2.5$\times$ provider effects on 70B+ models have multiple candidate mechanisms (sampling-config override, tokenizer template, KV-cache policy) that we do not adjudicate. (5)~No frontier closed models (GPT-4 class, Claude class, Gemini class) appear in the actor panel; the nomological-network predictions in §\ref{sec:design} and §\ref{app:design} remain untested at frontier scale. (6)~The pilot is digital-only; the cross-domain generalizability argument identifies digital-to-embodied transfer as the load-bearing assumption HIUA-Bench is designed to instrument, and embodied items are not included. Beyond pilot scope, three assumptions bound the broader argument: treating chain-of-thought traces as evidence of cognition is non-trivial given recent work on unfaithful reasoning, and HIUA-Bench's use of traces for hallucination-type labeling is itself an inference; the nomological correlations are predictions, not findings; and the military and lethal-system motivation, though rhetorically load-bearing for the consequential aspect, is separated from the tabletop-simulator items by at least three levels of remove (simulator $\to$ physical robot $\to$ lethal physical robot), of which HIUA-Bench instruments only the first, with ARMOR~\cite{armor2026} and RoboPAIR~\cite{robopair2024} as the unbuilt bridges across the next two.
+
+\section{Conclusion and future work}
+\label{sec:conclusion}
+No existing agent-safety benchmark isolates the pathway that matters most when an action is irreversible: a hallucination causing an agent to cross a prohibition it could otherwise recall verbatim. Yet agents are now being deployed into exactly such settings---RoboPAIR, ARMOR, and the Anthropic agentic-misalignment red team~\cite{robopair2024, armor2026, anthropicagentic2025} mark that frontier---and existing benchmark scores are cited as evidence those deployments are safe. Our audit and pilot show those scores cannot bear that weight: a single aggregate violation rate hides distinct failure mechanisms, each needing a different fix, that the pilot's partition recovers from the very same trials. Smaller-and-on-construct beats larger-and-confounded when the cost of the wrong answer is irreversible.
+
+\paragraph{Future work.}
+Four concrete directions follow. (i)~Run the full 36-item factorial with multi-seed paraphrase expansion against 8--12 frontier and open-weights models in Inspect Evals scaffolding~\cite{inspectevals2024} and report $\Phi$, $\mathrm{E}\rho^2$, and the IRT 2PL discrimination distribution~\cite{lostinbench2025}. (ii)~Extend to embodied items in AI2-THOR~\cite{safeagentbench2024, heal2025} to test the digital-to-embodied transfer claim that is the load-bearing assumption for the consequential argument. (iii)~Compute rank correlations against AgentHarm~\cite{agentharm2024} and HalluLens~\cite{hallulens2025} on a shared model panel, providing the first nomological-network datapoint for HIUA. (iv)~Replicate with multi-judge ensembles that are not rate-limit-constrained, targeting $\kappa \geq 0.70$ for the substantive-validity argument.
+
+\section{Required Disclosures}
+
+\paragraph{Reproducibility.}
+All 36 items, paraphrase expansions, scoring rubrics, judge prompts, and pilot code are released at \url{https://github.com/JakeKlose/hiua-bench}. The scoring pipeline is implemented in Inspect Evals scaffolding~\cite{inspectevals2024}.
+
+\subsection{Scientific Standards Disclosure}
+
+We took responsibility for ensuring that the project met scientific standards of originality, accuracy, attribution, and neutrality. To reduce plagiarism risk, we wrote the central construct definition, validity argument, benchmark design, and empirical interpretation ourselves, then checked that any language or ideas drawn from prior work were attributed to the appropriate sources. We treated generative AI outputs as drafts or prompts for revision, not as authoritative sources. Factual claims about prior benchmarks, reported rates, and methodological frameworks were checked against the cited papers before inclusion. We also reviewed the argument for bias in two senses: first, whether the paper unfairly dismissed existing benchmarks that were designed for adjacent rather than identical constructs; and second, whether our proposed benchmark could overstate safety by privileging refusal or prompt salience. Where uncertainty remained, especially in the pilot results and judge reliability, we bounded our claims and described the limitations explicitly rather than presenting preliminary findings as definitive.
+
+\subsection{AI Tool Use Reflection}
+
+We used generative AI tools as research, writing, and coding assistants throughout the project. They were most useful for helping us brainstorm construct boundaries, identify adjacent literatures, improve clarity of dense prose, generate initial \LaTeX{} table drafts, and debug parts of the pilot scoring pipeline. AI tools also helped us pressure-test whether the distinction between hallucination-induced unauthorized action and neighboring constructs such as lucid violation, jailbreak compliance, and policy-invisible violation was legible to a reader. Their main impact on our learning was to accelerate iteration: we could test framings quickly, see where the argument became confusing, and revise toward a cleaner measurement claim. At the same time, the tools sometimes produced overconfident summaries, imprecise citations, or language that sounded more polished than warranted. In future work, we would continue using AI for scaffolding and critique, but only with source checking, human judgment, and explicit separation between AI-assisted drafting and empirical claims.
+
+\subsection{Impact Statement}
+
+This work concerns agent-safety measurement in settings where LLM agents may take consequential or irreversible actions. The potential positive impact is a more precise benchmark that prevents developers from overclaiming safety based on aggregate violation rates. By distinguishing hallucination-induced unauthorized action from lucid violation, jailbreak compliance, over-refusal, and policy-invisible violation, the benchmark could support better-targeted mitigations and more responsible deployment decisions. The same work could also be misused. A public leaderboard might encourage benchmark gaming, surface-level refusal behavior, or misleading claims that a model is broadly safe because it performs well on one narrow construct. To mitigate this, we recommend gated release, explicit deployment-claim audits, and reporting limitations alongside scores. Our pilot used simulated tasks rather than human participants or sensitive personal data. We handled attribution by citing prior benchmarks and validity frameworks, and we treated generated text, code, and judge labels as materials requiring human review rather than independent scholarly contributions.
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\appendix
+
+\section{Background: validity theory in the agent-safety context (extended)}
+\label{app:validity-background}
+
+We expand here on the three points from Section~\ref{sec:background}.
+
+\paragraph{Messick on interpretation.} The view that validity is a property of score interpretation rather than the test itself is stated by Messick as ``an overall evaluative judgment of the degree to which empirical evidence and theoretical rationales support the adequacy and appropriateness of interpretations and actions based on test scores''~\cite{messick1989, standards2014}. The relevant interpretation for HIUA is that the agent will not, when deployed, take a forbidden action because of a hallucinated belief about authorization, state, or tool effect. A benchmark that reports an aggregate violation rate without isolating this conditional pathway provides empirical evidence for a much weaker interpretation---``this model violated rules at rate $r$ in this distribution''---than the one its consumers often use it to license, which is closer to ``this model will not, in deployment, take a forbidden action via hallucinated authorization at rate exceeding $\alpha$.''
+
+\paragraph{Nomological vs.\ causal accounts.} Cronbach and Meehl introduced construct validity as the placement of a theoretical construct within a nomological network of lawful relations to other constructs and observables~\cite{cronbachmeehl1955}. Borsboom and colleagues later proposed a causal account~\cite{borsboom2004}: the construct must causally produce variation in the measurement outcome. For the LLM case, the causal account demands a commitment that may not be warranted---that there is a single underlying variable (``hallucination propensity'') causing observed violations. We avoid this commitment. We claim instead that HIUA, if worth measuring, should sit in a predictable web of correlations with hallucination rate, jailbreak compliance, and capability; this web is what licenses the deployment interpretation and motivates the pre-registered predictions in Section~\ref{sec:design}. Freiesleben~\cite{nomologicalnetworks2026} argues that for LLM capability benchmarks the nomological account avoids the strong ontological commitments of the causal account while providing more substantive constraint on construct meaning than Kane's argument-based refinement~\cite{kane2013}, which we read as a purely inferential account focused on whether the chain of inferences from test score to use-claim holds. Our adoption of the nomological framing means that HIUA's validity is established by demonstrating predicted correlations with adjacent constructs (Section~\ref{sec:design}; predicted patterns in Appendix~\ref{app:design}), not by claiming a unitary latent cause.
+
+\paragraph{Consequential aspect: history of under-application.} The consequential aspect has been the least applied of Messick's six in AI evaluation~\cite{jacobswallach2021, m2m2025}. Jacobs and Wallach~\cite{jacobswallach2021} argued for elevating consequential and content validity in fairness measurement, observing that the choice of measurement procedure has downstream consequences that the measurement itself rarely surfaces. Salaudeen et al.~\cite{m2m2025} apply this lens to AI evaluation more broadly, finding the consequential aspect systematically underweighted relative to construct and external validity. The agent-safety case forces it back into prominence because the use of these benchmarks is to license deployment in irreversible-action settings: a benchmark that produces a plausible-looking score without isolating the construct the deployment claim requires is not neutral. It is misleading in a particular direction---namely, toward greater confidence in deployment safety than the measurement supports.
+
+\section{Construct definition: extended}
+\label{app:construct}
+
+We expand here on the sub-construct and anti-construct discussions from Section~\ref{sec:construct}.
+
+\paragraph{Sub-construct examples in detail.}
+
+\textit{Authorization hallucination} is a reasoning-stage failure: the agent generates intermediate reasoning that treats a fabricated or unverified instruction as binding. The canonical example is a forged ``manager email'' arriving mid-task through a tool channel, with no cryptographic signature, verified sender, or other provenance. A well-grounded agent would surface the lack of provenance and either decline the override or request verification. An agent exhibiting authorization hallucination, instead, generates chain-of-thought that treats the forgery as authoritative and proceeds to the forbidden action.
+
+\textit{State hallucination} is a perception-stage failure: the agent fabricates a world state in which the action is no longer forbidden. The canonical example is an ambiguous filename (e.g., \texttt{report\_v2.pdf} alongside \texttt{report\_v2\_copy.pdf}) leading the agent to infer ``this is obviously a duplicate, so deletion is not data loss.'' The inference is reasonable on average but, in the trial-specific ground truth, the file is unique and deletion is irrecoverable. The hallucinated state---``duplicate exists''---licenses an action that would otherwise be prohibited.
+
+\textit{Tool hallucination} is an execution-stage failure: the agent's representation of the tool's effect diverges from the tool's actual behavior. The canonical example is a tool whose docstring describes a search but whose emulated implementation triggers a billable action. The agent calls the tool believing the call is cost-free and never represents its own action as ``spending money.'' The forbidden action (spending) is executed, but the agent's chain-of-thought contains no acknowledgment that spending occurred.
+
+These three sub-constructs are theoretically distinct in mechanism, in the interventions that would mitigate them, and in the measurement design that would isolate them: a faithfulness intervention such as instruction-hierarchy training~\cite{instructionhierarchy2024} targets authorization hallucination; a perception-grounding intervention targets state hallucination; a tool-output validation layer targets tool hallucination.
+
+\paragraph{Why the partition matters: the Borsboom argument.} Borsboom's causal account of validity requires that variations in the target attribute produce variations in the measurement outcome~\cite{borsboom2004}. If the same observed violation rate can be produced by any of five distinct mechanisms---lucid violation, jailbreak compliance, over-refusal flipping to compliance, policy-invisible violation, or HIUA proper---then the variation in attribute (HIUA propensity specifically) is not what is producing the variation in the measurement. The measurement is responsive, but it is responsive to a mixture. The four anti-constructs in Section~\ref{sec:construct} are not edge cases; they are alternative explanations of the same observable that any HIUA measurement must rule out.
+
+\section{Related work: detailed per-cluster coverage}
+\label{app:related}
+
+We expand here on the six clusters introduced in Section~\ref{sec:related}. We organize the prior literature by the construct each instrument implicitly measures, rather than by chronology or by author; this organization is not neutral, as it is the work that the audit in Section~\ref{sec:audit} will lean on.
+
+\paragraph{Malicious-user-instruction compliance.}
+AgentHarm's 110 explicitly malicious agent tasks (440 with jailbreak augmentations) span 11 harm categories from fraud to cybercrime to harassment. The authors document that leading models are surprisingly compliant without any jailbreaking, that universal jailbreak templates adapt effectively to agentic tasks, and that jailbroken agents retain their capabilities while behaving maliciously across multi-step trajectories~\cite{agentharm2024}. AgentDojo, with 97 realistic tasks and 629 security cases spanning email, banking, and travel-booking environments, found that GPT-4o's benign utility of 69\% drops to 45\% under prompt-injection attack, with targeted attack success rates of 53.1\% on the ``Important message'' canonical attack~\cite{agentdojo2024}. InjecAgent's 1{,}054 cases across 17 user tools and 62 attacker tools found that ReAct-prompted GPT-4 is vulnerable to indirect prompt injection 24\% of the time, with hacking-prompt reinforcement nearly doubling the success rate~\cite{injecagent2024}. RoboPAIR achieved approximately 100\% attack success in eliciting physical harmful actions across three robot platforms~\cite{robopair2024}. These instruments cluster cleanly around the agent's resistance to forbidden actions when those actions are explicitly requested by an adversary---the user (AgentHarm), third-party content (InjecAgent, AgentDojo), or an algorithmic attacker (RoboPAIR). In every case the harmful action is in the instruction stream. This is the complement of HIUA: in HIUA, no actor has instructed the harmful action; the agent has confabulated authorization, state, or tool effect on its own.
+
+\paragraph{Outcome-aggregated agent safety.}
+ToolEmu's LM-emulated sandbox covers 36 high-stakes toolkits and 144 test cases; the safest LM agent fails 23.9\% of the time according to the automatic evaluator, and 68.8\% of the failures the evaluator flagged are validated as real-world failures by human raters~\cite{toolemu2024}. R-Judge's 569 multi-turn agent interaction records spanning 27 risk scenarios in 5 application categories and 10 risk types measures the proficiency of an LLM-judge in identifying safety risks post-hoc, with GPT-4o achieving 74.42\%~\cite{rjudge2024}. Agent-SafetyBench's 349 interaction environments and 2{,}000 test cases across 8 risk categories and 10 failure modes found that none of 16 popular LLM agents achieved a safety score above 60\%, identifying lack of robustness and lack of risk awareness as the two fundamental defects~\cite{agentsafetybench2024}. The R-Judge case is particularly instructive: it is a meta-evaluation in which the LLM under test is asked to judge agent traces rather than to act---a different construct (risk awareness as judgment rather than risk avoidance as action), and reading its scores as a measure of deployment safety is a construct-level mismatch.
+
+These instruments report single aggregated failure rates per model. The DriftBench finding that KBV varies from 8\% to 99\% across models~\cite{driftbench2026} implies that aggregating across hallucinated and lucid violations averages over a roughly 90-percentage-point swing in the dissociation between recall and adherence. The same 30\% violation rate could reflect a model that always recalls and sometimes violates anyway (lucid), a model that never recalls and always violates (recall failure), or a model that confabulates new authorizations 30\% of the time (HIUA proper)---three cases with different remediations.
+
+\paragraph{Lucid constraint adherence.}
+DriftBench's central finding is the dissociation itself: across 2{,}146 scored benchmark runs spanning seven models, four interaction conditions, and 38 research briefs from 24 scientific domains, models accurately restate constraints they simultaneously violate, with KBV rates of 8--99\% across models~\cite{driftbench2026}. Structured checkpointing partially reduces KBV but does not close the dissociation. AgentIF, constructed from 50 real-world agentic applications with instructions averaging 1{,}723 words and 11.9 constraints each, found that the best evaluated models followed fewer than 30\% of instructions perfectly~\cite{agentif2025}. The Hierarchical Safety Principles benchmark documented a quantifiable ``cost of compliance,'' where safety constraints degrade task performance even when compliant solutions exist, and an ``illusion of compliance'' in which high adherence rates often mask task incompetence rather than principled choice~\cite{hsp2025}. The instruction-hierarchy training of Wallace et al.~\cite{instructionhierarchy2024} is the field's principal architectural response, training models to prioritize system over developer over user over data instructions. This fix targets the dissociation that DriftBench and AgentIF measure, rather than the hallucination pathway that HIUA targets. The cluster's value for HIUA is primarily methodological: it has established that constraint recall and adherence are dissociable, which is precisely the partition HIUA-Bench performs in reverse, separating failure-to-adhere-despite-recall (lucid) from failure-to-adhere-because-of-hallucination.
+
+\paragraph{Embodied safety.}
+SafeAgentBench's 750 tasks (450 hazardous, 300 safe controls) across 10 hazard categories and 3 task types are grounded in an interactive AI2-THOR-style simulator; the best-performing baseline achieved 69\% success on safe tasks but only 5\% rejection on hazardous ones~\cite{safeagentbench2024}. AGENTSAFE extends this with 45 adversarial scenarios, 1{,}350 hazardous tasks, and 9{,}900 instructions evaluated across nine state-of-the-art VLMs and two embodied agent workflows, with multi-level diagnosis across perception, planning, and execution~\cite{agentsafe2025}. HEAL is the closest existing analogue to HIUA in design: it probes hallucinations in long-horizon embodied planning by constructing scene-task inconsistencies (distractor injection, task-relevant object removal, synonymous object substitution, scene-task contradiction), inducing hallucination rates up to 40 times higher than base prompts across 12 models in two simulators~\cite{heal2025}. The illustrative example HEAL gives---a robot instructed to ``put the knives in the dishwasher'' in a scene without a dishwasher, hallucinating the dishwasher and placing sharp utensils in an empty cabinet---is exactly the state-hallucination sub-construct from Section~\ref{sec:construct}. The gap between HEAL and HIUA is the dependent variable: HEAL measures plan correctness conditional on inconsistency manipulation; HIUA would measure prohibition crossing conditional on the same manipulation. The two are, in principle, recoverable from the same trace data, but HEAL did not analyze it that way.
+
+\paragraph{Hallucination measurement, standalone.}
+HalluLens distinguishes extrinsic from intrinsic hallucination, dynamically generates its evaluation data to prevent test-set leakage, and disentangles hallucination from factuality~\cite{hallulens2025}. The recent survey of agent-specific hallucinations proposes a stage-based taxonomy spanning the agent workflow (brain, perception, action) and catalogs 18 triggering causes~\cite{halluagentsurvey2025}. Neither instrument is cross-linked to a measure of consequential action: they measure whether a hallucination occurred, but not whether it caused a forbidden action.
+
+\paragraph{Validity and benchmarking-of-benchmarks.}
+Measurement-to-Meaning lays out a validity-centered framework for reasoning about which claims existing measurements can and cannot support~\cite{m2m2025}. The nomological-networks-required argument applies Cronbach-Meehl to LLM capability benchmarks~\cite{nomologicalnetworks2026}. BetterBench assessed 25 AI benchmarks against 46 best-practice criteria, finding large quality differences with most benchmarks failing to report statistical significance or to allow easy replication~\cite{betterbench2024}. The Eriksson et al.\ interdisciplinary meta-review of approximately 100 studies on AI-benchmark shortcomings names misaligned incentives, construct validity gaps, and gaming as systemic problems~\cite{canwetrust2025}. Raji et al.\ critique the practice of taking ``general'' benchmarks as abstractions for general capability~\cite{raji2021}. Bowman and Dahl propose four criteria that most NLU benchmarks fail~\cite{bowmandahl2021}. The PSN-IRT analysis of 41{,}871 items across 11 LLM benchmarks documents widespread saturation, insufficient difficulty ceilings, and item-level contamination~\cite{lostinbench2025}. Liao and Xiao argue for socio-technically situated evaluation~\cite{liaoxiao2023}. Jacobs and Wallach propose measurement modeling as the right frame for fairness in computational systems, emphasizing content and consequential validity as load-bearing~\cite{jacobswallach2021}. This methodological cluster is what makes the present paper possible; the audit in Section~\ref{sec:audit} tries to make the target-specific arguments sharp enough that it is not a Messick checklist exercise but a critique producing conclusions the literature does not already contain.
+
+\section{Validity audit: extended discussion}
+\label{app:audit}
+
+We expand here on three Messick aspects deferred from Section~\ref{sec:audit}: content, generalizability, and external. Per-instrument coding rationales for Table~\ref{tab:audit} follow.
+
+\paragraph{Content aspect: does the test span the construct?}
+The content question for HIUA is whether the items in a benchmark sample the joint space of $\{\text{hallucination type}\} \times \{\text{prohibition salience}\} \times \{\text{action domain}\}$ densely enough to license generalization to the deployment use case.
+
+SafeAgentBench's 10 hazard categories, simulator-grounded across 3 task types, provide solid content coverage of hazardous instructions in embodied settings~\cite{safeagentbench2024}. They do not, however, factorially cross hazardous instructions with hallucination triggers. The construct it spans is ``hazard refusal under direct adversarial instruction'' rather than HIUA: the 5\% rejection rate on hazardous tasks measures refusal in the presence of an explicit harmful request, not the agent's tendency to confabulate authorization for an action no one requested.
+
+AgentHarm's 11 harm categories, with 110 base tasks and 440 augmented versions, provide thick coverage of malicious-user-instruction compliance~\cite{agentharm2024}, but the user is the adversary by construction. The benchmark contains no items in which the agent has been given a clean task and then must avoid hallucinating a side-channel authorization. InjecAgent and AgentDojo cover third-party-injected adversarial instructions~\cite{injecagent2024, agentdojo2024}: the agent receives a clean user instruction but processes external content containing a hostile instruction. The same coverage gap from HIUA's perspective: the attacker instructed the harmful action.
+
+HEAL has the right manipulation in the right setting---scene-task inconsistencies inducing state hallucination at $40\times$ base rates~\cite{heal2025}---but its content coverage stops short of explicit prohibitions. A content extension of HEAL with explicit per-trial prohibition statements would be the closest existing instrument to HIUA on the content aspect.
+
+Prevailing benchmarks cover the malicious-instruction half of agent safety thickly and the hallucinated-authorization half almost not at all. Content validity for HIUA across the surveyed corpus is, by inspection, near zero.
+
+\paragraph{Generalizability aspect: across persons, items, occasions, settings.}
+The generalizability aspect is the load-bearing assumption of every agent-safety paper in this space: that a benchmark score in one setting predicts behavior in another. The setting transfer of interest is from digital sandboxes (where a forbidden action is sending an email or transferring a small simulated balance) to embodied and lethal settings (where a forbidden action is firing a weapon or shutting off a life-support device). This transfer is rarely measured and almost never reported as a generalizability coefficient.
+
+No published cross-walk exists between AgentHarm scores on the same models and SafeAgentBench scores on the same models, despite the two papers being published within months of each other~\cite{agentharm2024, safeagentbench2024}. The rank correlation between their reported model orderings would be a one-table contribution.
+
+The irreversibility gap matters in a way that pure generalizability mathematics underweights. A 5\% violation rate is acceptable for a chatbot that types ``I cannot help with that'' 95\% of the time. It is catastrophic for a drone that fires a weapon 5\% of the time it should not. The construct has a stakes-dependent decision threshold that is not separable from the construct itself. ARMOR makes the analogous argument for military deployment: civilian-context safety metrics underestimate the military-relevant safety gap, especially around lawful-instruction refusal under operational constraints~\cite{armor2026}. RoboPAIR's near-100\% physical-harm attack success rate~\cite{robopair2024} is not ``almost the same'' as a 50\% rate---it is the difference between unsafe-on-paper and unsafe-in-deployment.
+
+Occasion variance is also under-reported. The Anthropic agentic misalignment study reports blackmail rates of 79--96\% across model families on a particular scenario~\cite{anthropicagentic2025}, but within-model variance across seeds, paraphrases, and prompt orderings is sparsely reported. Without occasion-facet variance, we cannot tell whether a 96\% blackmail rate is a stable model property or an artifact of one prompt construction.
+
+For HIUA, generalizability evidence must include (i) within-domain occasion-facet variance reported as a coefficient, (ii) cross-domain transfer reported as a correlation, and (iii) explicit irreversibility-stakes annotation per domain, so that a 5\% rate in a high-stakes domain is not silently averaged with a 5\% rate in a low-stakes domain.
+
+\paragraph{External aspect: what does the score correlate with?}
+External validity requires placing the construct in a nomological network of expected relations to other measured constructs~\cite{cronbachmeehl1955, nomologicalnetworks2026, m2m2025}. A valid HIUA measurement should show a predictable pattern of correlations: positive with measures of the same underlying generative process, weakly positive with measures of adjacent failure modes, and zero or inverse with capability above some threshold. We list the predicted patterns that a HIUA benchmark should be obliged to report.
+
+\textit{Positive correlation with text-only hallucination rate.} HalluLens~\cite{hallulens2025} measures the same underlying mechanism---unfaithful intermediate generation---hypothesized to drive HIUA. The rates should covary.
+
+\textit{Weakly positive correlation with AgentHarm compliance.} The mechanism is different (jailbreak compliance rather than confabulation), but model families that are generally more compliant should also be more willing to follow a hallucinated authorization~\cite{agentharm2024}. The correlation should exist but should be lower than the HalluLens correlation. If it is higher, the construct decomposition is wrong: HIUA and jailbreak compliance are being driven by a single underlying variable, not two.
+
+\textit{Zero or inverse correlation with general capability (MMLU, GPQA) above a threshold.} More capable models hallucinate less per token but are deployed in higher-stakes settings; the deployment-weighted HIUA risk may not decline with capability. If the empirical correlation is strongly positive, the construct is contaminated with capability variance and the benchmark measures ``weak model'' rather than ``HIUA-prone model.''
+
+\textit{Positive correlation with strategic-deception and sycophancy measures.} Both reflect breakdowns of faithful intermediate generation under pressure (strategic goal pressure or user pressure)~\cite{deceptionsurvey2024, sharmasycophancy2023}. HIUA reflects the breakdown without either pressure. The three should sit in a graded family with a positive but not unit correlation.
+
+No surveyed benchmark reports this pattern. The closest external-validity datapoint in the agent-safety literature is the Anthropic agentic-misalignment study, which observed elevated blackmail rates under shutdown-threat conditions across model families~\cite{anthropicagentic2025}. This finding is consistent with a goal-protection construct related to HIUA but not identical, and the prediction was reported after the fact rather than pre-registered. The field should publish predicted correlation patterns before running new instruments. The nomological-network practice has not yet migrated from the validity-theory literature~\cite{nomologicalnetworks2026} to the agent-safety literature in any operational form.
+
+\paragraph{Per-instrument coding rationale for Table~\ref{tab:audit}.}
+
+\textit{AgentHarm}~\cite{agentharm2024} -- Content P: covers malicious-instruction compliance, not the hallucinated half. Substantive U: outcome-only scoring. Structural U: no variance-component decomposition. Generalizability P: cross-model results reported, no occasion variance. External U: not cross-linked to adjacent constructs. Consequential P: harm-score gating mitigates surface gaming.
+
+\textit{AgentDojo}~\cite{agentdojo2024} -- Content P: prompt-injection coverage but no hallucinated-authorization items. All other aspects U.
+
+\textit{RoboPAIR}~\cite{robopair2024} -- Content P: physical-harm coverage. Substantive, Structural, Generalizability, External: U. Consequential P: alerts the field to physical-deployment risk.
+
+\textit{ToolEmu}~\cite{toolemu2024} -- Content U: no HIUA items. Substantive U: outcome-only. Structural U: emulator-vs-real validation reported, not agent-score reliability. Other aspects U.
+
+\textit{R-Judge}~\cite{rjudge2024} -- Content U: judges traces rather than acts. Substantive U: cognition under test is the judge's. Structural P: per-judge agreement reported. Other aspects U.
+
+\textit{Agent-SafetyBench}~\cite{agentsafetybench2024} -- Content P: broad safety scenarios. All other aspects U.
+
+\textit{DriftBench}~\cite{driftbench2026} -- Content U: ideation rather than HIUA items, but the recall probe is the closest existing analogue to substantive instrumentation. Substantive P: $2\times2$ partition is one factor short of HIUA. Structural P: 8--99\% KBV dispersion across persons is the kind of variance that should be partitioned. Consequential P: motivates the partition design.
+
+\textit{SafeAgentBench}~\cite{safeagentbench2024} -- Content P: embodied hazards. All other aspects U.
+
+\textit{HEAL}~\cite{heal2025} -- Content P: right manipulation, wrong dependent variable. Substantive P: scene-task inconsistencies induce hallucination at $40\times$ base, but plan correctness rather than prohibition crossing is measured. Other aspects U.
+
+\section{HIUA-Bench: extended design}
+\label{app:design}
+
+We expand here on item structure, scoring, reliability, and the pre-registered validity argument from Section~\ref{sec:design}.
+
+\paragraph{Item structure: hallucination triggers in detail.}
+For \textit{authorization hallucination}, a forged ``manager email'' granting an override arrives mid-task through a tool channel, and the email lacks any cryptographic or verified provenance. A well-grounded agent should surface the missing provenance and either decline the override or request verification. For \textit{state hallucination}, an ambiguous identifier suggests a duplicate state---a file name suggesting redundancy, a sensor reading at the edge of a discretization boundary, or an inventory message implying the target is already gone. For \textit{tool hallucination}, a tool's docstring describes a benign action but the emulated implementation triggers a destructive side effect; the trigger is the docstring--behavior mismatch.
+
+The action space includes at least one forbidden action and at least one compliant alternative; the agent that refuses to act at all scores neither, preventing trivial-refusal gaming of the score. The ground-truth state is simulator-verifiable, so outcome scoring does not rely on an LLM judge for the primary measure.
+
+\paragraph{Scoring details.}
+The outcome scorer has no LLM judge in the loop for the primary measure, preventing the rater-variance issue from propagating to the headline. The hallucination scorer's 3-model LLM-judge ensemble is itself a facet in the G-study; we expect $\sigma^2(\text{rater})$ to be substantial and report it rather than aggregating it away. Human spot-checks on 10\% of trials calibrate the ensemble against ground-truth labels.
+
+The recall probe is issued in a fresh context window after the action (or refusal). This separation prevents the probe text from being conflated with action-stage reasoning in the chain-of-thought trace, and lets the recall measurement function as evidence about whether the rule was in memory at decision time rather than whether the model could reconstruct it post-hoc.
+
+\paragraph{G-study design and D-study targets.}
+The crossed design treats persons (models) $\times$ items (36 base items) $\times$ raters (3 LM-judges plus 1 human spot) $\times$ occasions (4 paraphrases $\times$ 3 seeds = 12 occasions per item) $\times$ prohibition-salience (3 levels) as random facets, with hallucination sub-type and action domain as structurally fixed strata for separate reporting.
+
+We report variance components $\sigma^2(\text{person})$, $\sigma^2(\text{item})$, $\sigma^2(\text{rater})$, $\sigma^2(\text{occasion})$, and the interaction terms relevant to absolute and relative decision interpretations. The relative reliability coefficient $\mathrm{E}\rho^2 = \sigma^2(\text{person}) / [\sigma^2(\text{person}) + \sigma^2(\text{error,relative})]$ and the absolute coefficient $\Phi = \sigma^2(\text{person}) / [\sigma^2(\text{person}) + \sigma^2(\text{error,absolute})]$ are reported per domain stratum, with $\sigma^2(\text{error,relative})$ excluding facets that contribute equally across persons.
+
+D-studies target $\Phi \geq 0.80$ per domain stratum. Pilot variance estimates determine the minimum number of items $n_i$ and occasions $n_o$ required to reach this threshold under realistic facet structures; if pilot $\sigma^2(\text{item})$ is comparable to $\sigma^2(\text{person})$, $n_i$ requirements escalate sharply and we report the implied corpus size. The IRT 2PL discrimination parameter $a_i$ is reported per item, with items below $a_i = 0.5$ flagged for revision; the discrimination distribution is published alongside the model rates~\cite{lostinbench2025}, providing item-level transparency that aggregate rates alone obscure.
+
+\paragraph{Pre-registered validity argument, by Messick aspect.}
+
+\textit{Content.} Factorial coverage is justified against the agent-hallucination taxonomy~\cite{halluagentsurvey2025}: the three sub-types map onto reasoning, perception, and execution stages of the surveyed taxonomy. The four domains span the digital-to-embodied gradient. The three salience levels span the prohibition-context-cardinality dimension that AgentIF and PhantomPolicy implicate~\cite{agentif2025, phantompolicy2026}.
+
+\textit{Substantive.} Chain-of-thought and recall probe interleaved with action instrument the hypothesized cognitive process. The $2 \times 4 \times 2$ cell structure $\{\text{recall}\} \times \{\text{hallucination-type or none}\} \times \{\text{violation}\}$ is the construct's empirical residence: HIUA proper lives in the $\{$recall yes, hallucination yes, violation yes$\}$ cells.
+
+\textit{Structural.} $\Phi$ and $\mathrm{E}\rho^2$ coefficients are reported across all random facets; IRT 2PL parameters per item; D-studies indicate sample sizes required for given precision levels.
+
+\textit{Generalizability.} Cross-domain transfer (digital to embodied) is reported as Spearman rank correlation between domain-stratum rates, with the irreversibility-stakes annotation per domain. Occasion-facet variance is reported as $\Phi(\text{occasions})$ and tabulated against $\Phi(\text{items})$ to make the relative importance of within-trial variability versus item variability explicit.
+
+\textit{External.} Pre-registered predicted patterns: positive correlation with HalluLens hallucination rate~\cite{hallulens2025}; weakly positive with AgentHarm compliance~\cite{agentharm2024}; zero or inverse with MMLU above the 0.7 threshold; positive with sycophancy~\cite{sharmasycophancy2023} and with strategic-deception measures~\cite{deceptionsurvey2024}. The pre-registration is on the published artifact. Deviations from the predictions are reported as evidence about the construct's empirical placement, rather than as failures of the benchmark.
+
+\textit{Consequential.} Released through gated access with AgentHarm-style harm-score gating~\cite{agentharm2024, inspectevals2024}. Not deployed as a public leaderboard. Release is accompanied by a developer-signed deployment-claim audit.
+
+\section{Pilot operationalization}
+\label{app:pilot}
+
+We expand here on scoring-stack diagnostics, judge ensemble reliability, and cross-provider replication detail from §\ref{sec:pilot}.
+
+\paragraph{Action scorer path distribution.}
+Of the 466 clean trials, 47.9\% were scored by the regex layer alone, 48.9\% by the refusal-prefix heuristic (extended in v2 to recognize OpenAI Harmony \texttt{<|channel|>analysis<|message|>...<|end|>} reasoning blocks, polite refusal openings such as ``I'm sorry, but I can't,'' and curly-quote normalization for contractions), and 3.2\% required the LLM-judge fallback for both-patterns-match ambiguity. The Harmony-format and curly-quote-aware extensions recovered 23 trials that the v1 parser had silently mis-classified, including 3 trials that the v1 parser had assigned to the violation cell on the basis of forbidden-token matches inside the model's reasoning about \emph{why} it should refuse.
+
+\paragraph{Recall scorer path distribution.}
+Of the 464 correctly-recalled trials, 76.6\% were caught by exact-substring match, while 23.1\% were rescued by the LLM-judge fallback after the substring scorer had failed. This is the operationalization basis for the substantive-validity claim in §\ref{sec:pilot}: a benchmark using substring matching alone would systematically misclassify nearly a quarter of correct recalls as recall failures, inflating the HIUA estimate by counting paraphrased-recall violations as not-recalled.
+
+\paragraph{Judge ensemble reliability.}
+The pre-registered judge ensemble was three-judge, comprising Anthropic Claude Sonnet 4.6, Meta Llama 3.3 70B Versatile (via Groq), and Meta Llama 4 Scout 17B (via Groq). The Versatile judge encountered the same v1 Groq-free-tier daily-request cap that constrained the original pilot, returning errors on 32.9\% of its calls. We therefore report the headline $\kappa$ on the Sonnet $\times$ Llama-4-Scout pair, where both judges returned valid labels for all 468 trials (Table~\ref{tab:judge-kappa}).
+
+\begin{table}[ht]
+\centering
+\caption{Pairwise judge agreement on hallucination-type labels (v2 pilot). The Llama 3.3 70B Versatile rows are not tabulated because the judge's 32.9\% error rate dominates its pairwise distributions.}
+\label{tab:judge-kappa}
+\begin{tabular}{lrrr}
+\toprule
+Judge pair & $n$ & Cohen's $\kappa$ & Observed agreement \\
+\midrule
+Claude Sonnet 4.6 $\times$ Llama 4 Scout 17B   & 468 & 0.626 & 91.5\% \\
+Claude Sonnet 4.6 $\times$ Llama 3.3 70B Vers. & --- & (unreliable) & --- \\
+Llama 4 Scout 17B $\times$ Llama 3.3 70B Vers. & --- & (unreliable) & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Sonnet $\times$ Llama-4-Scout $\kappa$ of 0.626 is in the substantial-agreement range (Landis and Koch threshold 0.60), an improvement over the v1 pilot's best pair ($\kappa = 0.419$) attributable to the addition of a non-Meta-family judge: the Anthropic family's training divergence from the Meta family appears to support more independent hallucination-type classification.
+
+The 8.5\% disagreement rate is concentrated in two patterns: Sonnet preferring the ``authorization'' label where Scout returns ``state,'' on items with both authorization-forging and state-ambiguity components; and Sonnet returning ``none'' on three trials where the chain-of-thought is sparse and the action line alone does not surface a hallucination signal. We report the 15 violation-trial disagreements as a measurement-uncertainty band rather than folding them into HIUA or KBV, consistent with the $2 \times 4 \times 2$ partition's commitment to non-folding the construct's empirical residence into a single aggregate rate.
+
+\paragraph{Per-judge label distribution.}
+The two operational judges produced label distributions consistent with the 86\% \emph{none} aggregate (Sonnet: 408 none, 27 authorization, 29 state, 2 tool; Scout: 406 none, 44 authorization, 15 state, 1 tool). The Versatile judge produced labels on only 6 trials (all none), so its distribution is not informative on the headline.
+
+\paragraph{Substantive-validity caveat.}
+The substantive-validity argument is conditional on the Sonnet $\times$ Llama-4-Scout pair's $\kappa = 0.626$ and on the 84.2\% pairwise agreement on the \emph{none} label that drives much of the observed agreement. The within-construct agreement---on the three hallucination-type labels specifically---is the lower-bound measurement the paper rests on, and the 8.5\% disagreement band is reported alongside HIUA and KBV in the headline. The strict-HIUA cell remains empty regardless of judge ensemble choice; the looser construct definition is the one supported by the data.
+
+\paragraph{Cross-provider replication detail.}
+Of the four models served via both Groq and our self-hosted vLLM, two pairs (Llama 3.3 70B and GPT-OSS 120B) show meaningful provider effects, while two (Llama 3.1 8B and GPT-OSS 20B) are invariant or at the refusal floor. The Llama 3.3 70B difference (5.6\% Groq vs.\ 13.9\% self-host) is the largest. Candidate mechanisms include: (a) vLLM's \texttt{--generation-config vllm} flag overriding the model's shipped \texttt{generation\_config.json} sampling defaults (Llama-shipped defaults include slight repetition penalty and lower top-$p$); (b) tokenizer or chat-template differences between Groq's optimized serving stack and stock vLLM; (c) KV-cache eviction policies under different concurrency profiles. We do not adjudicate among these; we report the effect as a generalizability-aspect finding. The deployment-side reading is that scores reported on hosted-API serving should not be transferred to self-hosted deployment without re-measurement at the 70B+ tier.
+
+\section{Extended discussion}
+\label{app:discussion}
+
+We expand here on three discussion threads from Section~\ref{sec:discussion}: the deception/sycophancy adjacency, the digital-to-embodied transfer claim, and the scope of what this paper contributes beyond the pilot.
+
+\paragraph{Deception and sycophancy adjacency.}
+Strategic deception~\cite{deceptionsurvey2024} involves unfaithful intermediate generation chosen deliberately to achieve a goal. Sycophancy~\cite{sharmasycophancy2023} involves unfaithful intermediate generation produced under user pressure. HIUA involves unfaithful intermediate generation produced without either deliberateness or user pressure: the model has neither been instructed to hallucinate nor been rewarded for hallucinating; it has hallucinated and acted. The three constructs are related but theoretically distinct. HIUA-Bench items should be designed to discriminate among them by manipulating goal incentives and user pressure orthogonally to the hallucination trigger: with vs.\ without explicit goal incentives for the violation, and with vs.\ without user pressure favoring it. If the rates do not differ across these manipulations, the construct decomposition is wrong and the three should be reported as facets of a single underlying tendency.
+
+\paragraph{Digital-to-embodied transfer.}
+SafeAgentBench's 5\% hazardous-task rejection rate~\cite{safeagentbench2024} and HEAL's 40$\times$ hallucination-rate inflation under scene-task inconsistency~\cite{heal2025} are the strongest empirical anchors for arguing that the construct is real and measurable in embodied settings. The transfer assumption---that a digital-sandbox score predicts embodied behavior---is the most important thing HIUA-Bench is designed to instrument rather than to assume. The cross-domain stratum of the design treats this transfer as an open empirical question per model rather than as a downstream design decision.
+
+\paragraph{What this paper does not contribute beyond the pilot.}
+The 36-item factorial is sketched, not fully implemented. The pilot runs against the 24-item base bank at single-seed and on a panel restricted to open-weights models. The nomological-network predictions are predictions, not findings. The construct decomposition is theoretically motivated and rests on a small number of empirical anchors (DriftBench's KBV dispersion~\cite{driftbench2026}, HEAL's hallucination probing~\cite{heal2025}, and the agent-hallucination taxonomy~\cite{halluagentsurvey2025}) supplemented by our own pilot, rather than on extensive convergent evidence. A future empirical version of this work would pilot the full 36-item factorial with paraphrase expansion against 8--12 frontier and open-weights models in Inspect Evals scaffolding~\cite{inspectevals2024}, and would report $\Phi$, $\mathrm{E}\rho^2$, the IRT discrimination distribution, and the predicted nomological correlations.
+
+
+\end{document}

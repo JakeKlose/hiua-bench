@@ -1,0 +1,343 @@
+% =========================================================================
+% Pilot section v2 — replaces §5 Empirical Pilot and App. §B Pilot Operationalization
+% from main.tex. Built against the v2 dataset (468 trials, 13 models, 36 items,
+% 3 salience levels) rather than the v1 dataset (144 trials, 6 models, 24 items,
+% 2 salience levels) the original section was written for.
+%
+% <<<...>>> slots are template placeholders to be filled from the final
+% analyze.py --g-study output once the judge run completes. Each slot has
+% the OLD value (from v1 pilot) in a comment for reference.
+% =========================================================================
+
+%% Drop-in replacement for the abstract's empirical sentence.
+%% OLD: "A small-scale pilot against six open-weights models shows the partition
+%%      is empirically realizable, prohibition salience is the largest single
+%%      effect on violation rate (1.2% at high salience vs.\ 23.3% at low salience),
+%%      and the HIUA-to-KBV ratio is approximately 2.75:1."
+
+% NEW: A 13-model pilot spanning closed-API and self-hosted vLLM panels (468
+% trials across a 36-item factorial) shows the $2{\times}4{\times}2$ partition is
+% empirically realizable, prohibition salience produces a non-monotonic
+% three-level effect on violation rate (<<<HIGH_VIOL>>>\% high vs.\ <<<MID_VIOL>>>\% mid
+% vs.\ <<<LOW_VIOL>>>\% low, with mid the highest), and the recall probe remains
+% effectively at ceiling, foreclosing direct observation of HIUA on this panel
+% while sharpening the validity argument for the construct's measurement target.
+
+% =========================================================================
+
+\section{Empirical pilot}
+\label{sec:pilot}
+
+We pilot HIUA-Bench against a 13-model panel spanning two serving paths.
+Six models were served through Groq's hosted inference endpoint (Llama 3.1 8B
+Instant, Llama 3.3 70B Versatile, Llama 4 Scout 17B preview, Qwen3 32B
+preview, OpenAI GPT-OSS 20B, and OpenAI GPT-OSS 120B). Seven additional
+open-weights models were self-hosted via vLLM on Modal-managed GPUs to extend
+the panel below and above Groq's catalog: Qwen 2.5 7B Instruct and Llama 3.1
+8B Instruct on a single L40S; Gemma 2 27B Instruct and OpenAI GPT-OSS 20B on
+a single A100-80GB; Llama 3.3 70B Instruct and Qwen 2.5 72B Instruct on 2
+tensor-parallel H100s; and OpenAI GPT-OSS 120B on 4 tensor-parallel H100s.
+The Llama 3.1 8B and 3.3 70B and the two GPT-OSS variants therefore appear in
+the panel twice, once via each serving path, supporting a cross-provider
+replication check on those four models. The full 36-item factorial covered 3
+hallucination sub-constructs $\times$ 3 prohibition-salience levels $\times$ 4
+domains, with one trial per (model, item) cell at temperature 0.7 with seed
+0, yielding $13 \times 36 = 468$ trials. Of those, <<<N_ERRORS>>> failed at the
+agent layer (the gpt-oss-20b tool-call rejection mode discussed below),
+leaving <<<N_CLEAN>>> clean trials for the headline analysis.
+
+For each trial, the agent received a system prompt containing the explicit
+prohibition and a user message containing the hallucination trigger, then
+produced a chain-of-thought followed by an action description. The recall
+probe was issued in a fresh context. The action scorer applied a three-layer
+cascade: a refusal-prefix heuristic on the parsed action line (extended to
+recognize Harmony-format reasoning channels and polite-refusal openings used
+by the GPT-OSS family); a regex match against forbidden and compliant action
+patterns; and a fallback to a Llama 3.3 70B judge when the regex flagged both
+forbidden and compliant matches. The recall scorer applied a two-layer
+cascade: substring match against the expected recall token, and a fallback to
+the same judge when the substring missed. Post-hoc, a three-judge ensemble
+(Claude Sonnet 4.6, Llama 3.3 70B Versatile, and Llama 4 Scout 17B) labeled
+each trial's hallucination type as one of $\{$none, authorization, state,
+tool$\}$. Scoring-stack diagnostics and per-judge reliability are in
+Appendix~\ref{app:pilot}.
+
+\paragraph{Cell occupancy.}
+Table~\ref{tab:pilot-cells} reports the headline $2 \times 2$ of
+$\{$forbidden action?$\} \times \{$recalled rule?$\}$ pooled across the panel.
+The recall probe was answered correctly on essentially every trial: the
+panel knew the rule in nearly all cases. Violations occurred on
+<<<VIOLATION_PCT>>>\% of clean trials, almost exclusively in the
+\emph{violation-recalled} (knows-but-violates) cell.
+
+\begin{table}[ht]
+\centering
+\caption{Pilot cell occupancy across $N=\langle$<<<N_CLEAN>>>$\rangle$ clean trials.}
+\label{tab:pilot-cells}
+\begin{tabular}{lrr}
+\toprule
+Cell & Count & Percent \\
+\midrule
+Compliant + recalled                       & <<<CR_N>>> & <<<CR_PCT>>>\% \\
+Compliant + not recalled                   & <<<CNR_N>>> & <<<CNR_PCT>>>\% \\
+Violation + recalled                       & <<<VR_N>>> & <<<VR_PCT>>>\% \\
+Violation + not recalled (HIUA-candidate)  & <<<VNR_N>>> & <<<VNR_PCT>>>\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Of the <<<VR_N>>> violation-with-recall trials, the three-judge majority
+hallucination label was \emph{authorization} on <<<MAJ_AUTH>>>,
+\emph{state} on <<<MAJ_STATE>>>, \emph{tool} on <<<MAJ_TOOL>>>, and
+\emph{none} on <<<MAJ_NONE>>>. Defining HIUA as the rate of forbidden action
+conditional on recall and a hallucination-type majority label, and KBV as the
+rate of forbidden action conditional on recall and a ``none'' majority label
+in this restricted partition:
+\[
+\widehat{\mathrm{HIUA}} = \tfrac{<<<HIUA_NUM>>>}{<<<N_CLEAN>>>} = <<<HIUA_PCT>>>\%, \qquad
+\widehat{\mathrm{KBV}} = \tfrac{<<<KBV_NUM>>>}{<<<N_CLEAN>>>} = <<<KBV_PCT>>>\%.
+\]
+The HIUA-to-KBV ratio is approximately <<<HIUA_KBV_RATIO>>>:1. Note that the
+$\{$violation, not recalled$\}$ cell remains empty: HIUA in its
+strongest construct definition---an action taken when the rule was not
+recalled at probe time---is unobserved on this panel. The HIUA estimate
+above therefore uses the looser definition adopted in the original DriftBench
+partition, in which the recall criterion alone does not suffice and the
+hallucination-type label is required to separate confabulated from
+lucid mechanism. We return to this distinction in §\ref{sec:discussion}.
+
+\paragraph{Per-model rates.}
+Table~\ref{tab:pilot-per-model} reports per-model rates ($n=36$ each, except
+on models where the agent layer errored, see App.~\ref{app:pilot}). The
+panel spans a capability range from 7B parameters to 120B (with one
+235B-active-parameter MoE in the self-hosted opus tier excluded from the
+dev pilot). Within-family scaling is observable on Meta-Llama (3.1 8B vs.\
+3.3 70B) and on OpenAI's open-weights family (GPT-OSS 20B vs.\ 120B).
+
+\begin{table}[ht]
+\centering
+\caption{Per-model pilot rates. Cells in percent. HIUA-cand and KBV use the
+three-judge majority hallucination label among the violation-with-recall
+trials. Provider $\in \{$G (Groq), S (selfhost)$\}$.}
+\label{tab:pilot-per-model}
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Model & Prov. & $n$ & Violation & Recall & HIUA-cand & KBV \\
+\midrule
+<<<MODEL_TABLE_ROWS>>>
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cross-provider replication on the four models served both ways
+(Llama 3.1 8B, Llama 3.3 70B, GPT-OSS 20B, GPT-OSS 120B) shows
+<<<CROSS_PROVIDER_NOTE>>>.
+
+\paragraph{Sub-construct and salience effects.}
+The pilot's two largest single effects are reported in
+Table~\ref{tab:pilot-subconstruct}. The salience effect is
+\emph{non-monotonic}: violations are lowest at high salience (the
+prohibition stated as an ABSOLUTE-RULE caps clause near the top of the
+system role), highest at mid salience (the prohibition stated as one of
+several operational sentences mid-paragraph), and intermediate at low
+salience (the prohibition tucked into a tool docstring or parenthetical).
+The mid-salience condition produces the highest violation rate not because
+the rule is hardest to find---models can recall it at near-100\%
+rates---but because its prose framing positions it as one of many
+operational instructions to balance against the user request rather than as
+the one absolute constraint to honor unconditionally.
+
+\begin{table}[ht]
+\centering
+\caption{Pilot violation rates by sub-construct and three-level salience.}
+\label{tab:pilot-subconstruct}
+\begin{tabular}{lrr}
+\toprule
+Stratum & $n$ & Violation rate \\
+\midrule
+Authorization sub-construct & <<<AUTH_N>>>  & <<<AUTH_PCT>>>\% \\
+State sub-construct         & <<<STATE_N>>> & <<<STATE_PCT>>>\% \\
+Tool sub-construct          & <<<TOOL_N>>>  & <<<TOOL_PCT>>>\% \\
+\midrule
+High salience               & <<<HIGH_N>>>  & <<<HIGH_PCT>>>\% \\
+Mid salience                & <<<MID_N>>>   & <<<MID_PCT>>>\% \\
+Low salience                & <<<LOW_N>>>   & <<<LOW_PCT>>>\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The recall-ceiling caveat.}
+Recall is at <<<RECALL_PCT>>>\% across the panel and items, with all but
+<<<CNR_N>>> trials in the recalled cell. The HIUA construct in its strongest
+form---action taken when the rule was not in mind at decision time---is
+therefore \emph{unobserved} on this dataset. We interpret this as a property
+of the items and panel jointly: the items use short, prominent prohibitions
+that are paraphrase-stable under our recall probe, and the models in the
+panel are sufficiently capable that none drops the rule from context within
+the per-trial token budget. A construct version with harder recall probes
+(asking for specific details---filename patterns, deadlines, scope
+conditions---rather than the rule's existence) would likely populate this
+cell, but at the cost of conflating measurement difficulty with construct
+incidence. We return to this in the consequential-aspect discussion in
+§\ref{sec:discussion}.
+
+\paragraph{Comparison to baselines.}
+The pilot's overall violation rate of <<<VIOLATION_PCT>>>\% sits in the
+range reported by ToolEmu's outcome-only scoring (23.9\% safest-agent failure
+rate~\cite{toolemu2024}) and Agent-SafetyBench (no model above 60\%
+safety~\cite{agentsafetybench2024}), but our partition decomposes that rate
+into the KBV cell that DriftBench measures~\cite{driftbench2026} and the
+hallucination-type cells that HEAL probes via plan correctness rather than
+prohibition crossing~\cite{heal2025}. An unpartitioned benchmark would
+collapse the <<<N_CLEAN>>> trials into a single
+<<<VIOLATION_PCT>>>\% aggregate, losing the within-trial mechanism the
+$2 \times 4 \times 2$ partition recovers.
+
+\paragraph{What the pilot establishes.}
+First, the three-layer scoring stack is empirically separable, and the
+recall scorer's substring layer alone would have missed <<<JUDGE_RESCUE_PCT>>>\%
+of correct recalls (rescued by LLM-judge fallback)---direct evidence that a
+benchmark using substring scoring alone would systematically inflate HIUA
+estimates by misclassifying paraphrased recalls. Second, the partition
+produces non-trivial occupancy in the violation-recalled cell on <<<N_MODELS_WITH_KBV>>>
+of 13 models, operationally distinguishing it from compliance and from the
+unobserved HIUA cell. Third, the salience contrast (<<<HIGH_PCT>>>\% high vs.\
+<<<MID_PCT>>>\% mid vs.\ <<<LOW_PCT>>>\% low) is the panel's largest single
+effect by an order of magnitude over the sub-construct contrast, with a
+non-monotonic shape that the prior two-level design could not detect. The
+pilot's specific HIUA-to-KBV ratio does not yet generalize, but the
+partition is empirically realizable on the panel and items studied.
+Limitations bound these claims and are discussed in §\ref{sec:discussion}.
+
+% =========================================================================
+% Replacement for §6 Discussion paragraphs that lean on pilot numbers
+% =========================================================================
+
+%% Replace the "What worked" paragraph in §6:
+
+% \paragraph{What worked.}
+% The three-layer scoring stack discriminated as designed: action-scorer regex
+% and refusal-prefix layers handled <<<FAST_PATH_PCT>>>\% of trials, with
+% LLM-judge fallback firing only on the ambiguous minority. The recall
+% scorer's substring layer alone would have missed <<<JUDGE_RESCUE_PCT>>>\% of
+% correct recalls (rescued by judge fallback), providing direct evidence that
+% substring scoring alone would systematically inflate HIUA estimates by
+% miscounting paraphrased recalls as recall failures. The
+% $2 \times 4 \times 2$ partition produced non-trivial occupancy in the
+% violation-recalled (KBV) cell while the violation-not-recalled (HIUA)
+% cell remained empty, operationally locating the empirical violation mass on
+% the lucid-violation side of the partition for this panel. The
+% non-monotonic three-level salience contrast (<<<HIGH_PCT>>>\% vs.\ <<<MID_PCT>>>\%
+% vs.\ <<<LOW_PCT>>>\%) was the panel's largest single effect, with the
+% mid-salience pattern providing a finding the prior two-level design could
+% not detect: rules buried as one of several mid-paragraph instructions are
+% violated \emph{more} than rules tucked into tool-docstring corners.
+
+%% Replace the "What didn't" paragraph in §6:
+
+% \paragraph{What didn't.}
+% Judge ensemble Cohen's $\kappa$ averaged <<<KAPPA_MEAN>>> across the three
+% pairwise comparisons (full numbers in App.~\ref{app:pilot}); the
+% substantive-validity argument is bounded by this level of agreement.
+% Two of <<<N_TRIALS>>> trials failed at the agent layer
+% (gpt-oss-20b emitted Python tool-call JSON on \texttt{tool-fileops} items
+% even though no tools were declared, and the API rejected the wire format).
+% These are arguably HIUA-relevant events---the model attempted a forbidden
+% action---but were excluded from the headline rate because the wire-format
+% failure prevented our scorer from inspecting the intended action.
+% The single-seed design forecloses the variance-component decomposition that
+% the §\ref{sec:design} reliability plan calls for: per-model rates lack
+% standard errors and may not survive a full G-study. Recall remained at
+% effective ceiling (<<<RECALL_PCT>>>\%), foreclosing direct observation of the
+% violation-not-recalled (HIUA-strict) cell on this dataset.
+
+% =========================================================================
+
+\section{Pilot operationalization (extended)}
+\label{app:pilot}
+
+We expand here on the scoring-stack diagnostics and per-judge reliability
+from §\ref{sec:pilot}.
+
+\paragraph{Action scorer path distribution.}
+Of the <<<N_CLEAN>>> clean trials, <<<REGEX_PCT>>>\% were scored by the regex
+layer alone, <<<REFUSAL_PCT>>>\% by the refusal-prefix heuristic,
+<<<JUDGE_RESOLVED_PCT>>>\% required the LLM-judge fallback for
+both-patterns-match ambiguity, and <<<AMBIGUOUS_PCT>>>\% returned scorer
+errors that the judge could not resolve. The fallback rate is low because
+the action scorer's two cheap layers handle the majority of cases---the
+design intent. The Harmony-format and curly-quote-aware extensions to the
+refusal-prefix heuristic (added after observation of GPT-OSS family
+responses) recovered <<<HARMONY_RECOVERED_N>>> trials that the original
+parser had silently mis-classified.
+
+\paragraph{Recall scorer path distribution.}
+Of the <<<RECALLED_N>>> correctly-recalled trials, <<<SUBSTRING_PCT>>>\% were
+caught by exact-substring match, while <<<JUDGE_YES_PCT>>>\% were rescued by
+the LLM-judge fallback after the substring scorer had failed. This is the
+operationalization basis for the substantive-validity claim in
+§\ref{sec:pilot}: a benchmark using substring matching alone would
+systematically misclassify <<<JUDGE_RESCUE_PCT>>>\% of correct recalls as
+recall failures, which would inflate the HIUA estimate by counting
+paraphrased-recall violations as not-recalled.
+
+\paragraph{Judge ensemble reliability.}
+The three-judge ensemble for the v2 pilot comprises Claude Sonnet 4.6,
+Llama 3.3 70B Versatile (Groq), and Llama 4 Scout 17B (Groq). The pairwise
+Cohen's $\kappa$ values are in Table~\ref{tab:judge-kappa-v2}.
+
+\begin{table}[ht]
+\centering
+\caption{Pairwise judge agreement on hallucination-type labels (v2 pilot).}
+\label{tab:judge-kappa-v2}
+\begin{tabular}{lrrr}
+\toprule
+Judge pair & $n$ & Cohen's $\kappa$ & Observed agreement \\
+\midrule
+Claude Sonnet 4.6 $\times$ Llama 3.3 70B Versatile  & <<<PAIR1_N>>> & <<<PAIR1_KAPPA>>> & <<<PAIR1_OBS>>>\% \\
+Claude Sonnet 4.6 $\times$ Llama 4 Scout 17B        & <<<PAIR2_N>>> & <<<PAIR2_KAPPA>>> & <<<PAIR2_OBS>>>\% \\
+Llama 3.3 70B Versatile $\times$ Llama 4 Scout 17B  & <<<PAIR3_N>>> & <<<PAIR3_KAPPA>>> & <<<PAIR3_OBS>>>\% \\
+\midrule
+Mean of pairwise $\kappa$                            & --- & <<<KAPPA_MEAN>>> & --- \\
+All-three-agree rate                                 & <<<N_CLEAN>>> & --- & <<<ALL_AGREE_PCT>>>\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Claude Sonnet judge provides cross-family independence from the two Meta
+Llama judges and operates without the daily-request-per-model cap that
+constrained the v1 pilot's Llama 3.3 70B Versatile coverage. All
+<<<N_CLEAN>>> trials carry valid labels from all three judges.
+
+\paragraph{Substantive-validity caveat.}
+The mean pairwise $\kappa$ of <<<KAPPA_MEAN>>> indicates
+<<<KAPPA_QUALITATIVE>>> agreement; the substantive-validity argument is
+correspondingly <<<SUBSTANTIVE_VERDICT>>>. The construct's empirical
+residence---the cell partition of $\{$recall$\} \times \{$hallucination-type
+or none$\} \times \{$violation$\}$---is realized in the data, but the rate
+at which trials are assigned to the HIUA cell vs.\ the KBV cell is mediated
+by the judge ensemble at the level of agreement reported above.
+
+% =========================================================================
+% Notes for compiler / fill-in pass
+% =========================================================================
+
+% After analyze.py --g-study completes, slot the following from its output:
+%
+%   - N_CLEAN, N_ERRORS = total clean trials, total errors
+%   - HIGH_PCT, MID_PCT, LOW_PCT, HIGH_N, MID_N, LOW_N = salience table
+%   - AUTH_PCT, STATE_PCT, TOOL_PCT, AUTH_N, STATE_N, TOOL_N = sub-construct table
+#   - CR_N, CR_PCT, CNR_N, CNR_PCT, VR_N, VR_PCT, VNR_N, VNR_PCT = cell occupancy
+%   - MAJ_AUTH, MAJ_STATE, MAJ_TOOL, MAJ_NONE = majority labels in VR cell
+%   - HIUA_NUM, HIUA_PCT, KBV_NUM, KBV_PCT, HIUA_KBV_RATIO = construct estimates
+%   - MODEL_TABLE_ROWS = generated from per-model table (see analyze.py output)
+%   - REGEX_PCT, REFUSAL_PCT, JUDGE_RESOLVED_PCT, AMBIGUOUS_PCT = action scorer dist
+%   - SUBSTRING_PCT, JUDGE_YES_PCT, JUDGE_RESCUE_PCT, RECALLED_N = recall scorer dist
+%   - PAIR1_N, PAIR1_KAPPA, PAIR1_OBS, etc. = judge pair kappa table
+%   - KAPPA_MEAN, ALL_AGREE_PCT = ensemble summary
+%   - CROSS_PROVIDER_NOTE = prose summary of 4-model cross-provider replication
+%   - VIOLATION_PCT, FAST_PATH_PCT, RECALL_PCT, HARMONY_RECOVERED_N = misc derived
+%   - N_MODELS_WITH_KBV = count of models with ≥1 violation-recalled trial
+%   - KAPPA_QUALITATIVE = "moderate" if 0.4-0.6, "substantial" if 0.6-0.8, etc.
+%   - SUBSTANTIVE_VERDICT = "tightly bounded" / "moderately bounded" / etc.

@@ -194,7 +194,7 @@ experiment/
   items.json                                                      # 24 items, unchanged
   analyze.py, paraphrase.py                                       # unchanged
 paper_drafts/v1/overleaf/
-  paper_long_koyejo.tex                                           # target for empirical pilot section
+  paper_long_v2.tex                                           # target for empirical pilot section
   empirical_pilot_template.tex                                    # NEW (analysis chat) — slot-fill template
 ```
 
@@ -245,7 +245,7 @@ If kappa < 0.4: revise judge prompts (in `judge.py:JUDGE_SYSTEM`) and re-run ste
 
 ### Step 7 — update the paper
 
-Insert an "Empirical pilot" section into `paper_drafts/v1/overleaf/paper_long_koyejo.tex` with: model panel description, headline HIUA vs KBV table, sub-construct breakdown, salience effect, kappa, variance components, validity caveats. Match Koyejo style — formal first-person plural, no em-dashes, hedged claims.
+Insert an "Empirical pilot" section into `paper_drafts/v1/overleaf/paper_long_v2.tex` with: model panel description, headline HIUA vs KBV table, sub-construct breakdown, salience effect, kappa, variance components, validity caveats. Match the v2 register — formal first-person plural, no em-dashes, hedged claims.
 
 ### Step 8 (optional) — Together OSS panel for the full G-study
 
@@ -470,7 +470,7 @@ Completed:
 - Write v2 progress handoff file (this file) [infra chat, 2026-05-25]
 - Patch `judge.py:JUDGES_GROQ` (gemma2-9b-it → openai/gpt-oss-20b) [analysis chat, 2026-05-25]
 - Write `experiment/inspect_trials.py` — qualitative trial inspector. Modes: violations, hiua, kbv, recall_judge, disagreement, errors, random. Use to read actual chain-of-thought + recall text per trial, post-analysis. [analysis chat, 2026-05-25]
-- Write `paper_drafts/v1/overleaf/empirical_pilot_template.tex` — Koyejo-style slot-fill template for the empirical pilot section. Every `<<<...>>>` marker is a number to be filled from JSONL analysis. Drops into `paper_long_koyejo.tex` between the design sketch and discussion sections. [analysis chat, 2026-05-25]
+- Write `paper_drafts/v1/overleaf/empirical_pilot_template.tex` — formal-register slot-fill template for the empirical pilot section. Every `<<<...>>>` marker is a number to be filled from JSONL analysis. Drops into `paper_long_v2.tex` between the design sketch and discussion sections. [analysis chat, 2026-05-25]
 - Draft v3 expansion runbook (section "v3 expansion runbook (handoff to infra chat)" below). Provider-by-provider plan: Together → OpenAI → Anthropic → Google → self-host. Pre-stages each adapter's expected failure modes, cost ceiling, model panel. Includes target 12-model multi-provider panel and decision points for the infra chat. [analysis chat, 2026-05-25]
 - Diagnose judge pass results (144 trials, run_20260525T224437Z_dev_groq_dev_rescored_judged.jsonl). Summary in "Judge pass findings" section below. **Two judges are broken, one is fair. Cell partition shows zero HIUA, KBV dominates — major paper-framing implication.** [analysis chat, 2026-05-25]
 
@@ -582,7 +582,7 @@ Pending:
 - Re-run judge pass with new ensemble (llama-3.1-8b + llama-3.3-70b + **llama-4-scout**) to see whether kappa improves; produces _judged_v2.jsonl [user → analysis chat reads]
 - Inspect new kappa, decide whether to scale up [analysis chat]
 - ~~Decide on Together OSS panel run~~ — dropped per user directive (2026-05-25)
-- Fill `empirical_pilot_template.tex` with rescored numbers, drop into `paper_long_koyejo.tex` [analysis chat]
+- Fill `empirical_pilot_template.tex` with rescored numbers, drop into `paper_long_v2.tex` [analysis chat]
 - Verify paper numbers against JSONL (final cross-check before submission) [analysis chat]
 
 Pending — selfhost v3 (user runs Modal CLI commands; see "v3 selfhost architecture" inter-chat note for the step-by-step):
@@ -619,7 +619,7 @@ Two Claude chats are working this project in parallel. To avoid stepping on each
 - Reading completed JSONLs via `analyze.py` (with or without `--g-study`)
 - Qualitative inspection of `action_response` text + judge labels for individual trials
 - Identifying which findings land in the paper
-- Updating `paper_long_koyejo.tex` with empirical results
+- Updating `paper_long_v2.tex` with empirical results
 - Interpretation of kappa, variance components, cell-occupancy patterns
 - Sanity-checking infra chat's claimed numbers against the raw JSONL
 - Updating `PROGRESS_v2.md` after each analysis insight or paper edit
@@ -636,7 +636,7 @@ Two Claude chats are working this project in parallel. To avoid stepping on each
 
 2. **One-writer rule for `modal_app.py`.** The infrastructure chat owns `modal_app.py`. The analysis chat will not edit `modal_app.py` unless it's fixing a clear analysis-relevant bug (e.g., a scoring miscalculation that affects results). Anything registry- or trial-dispatch-related, the analysis chat flags in `PROGRESS_v2.md` and the infrastructure chat makes the edit.
 
-3. **One-writer rule for `paper_long_koyejo.tex`.** The analysis chat owns the paper. If the infrastructure chat needs to add a methods-section note (e.g., a Groq quota caveat), it appends to `PROGRESS_v2.md` and the analysis chat folds it in.
+3. **One-writer rule for `paper_long_v2.tex`.** The analysis chat owns the paper. If the infrastructure chat needs to add a methods-section note (e.g., a Groq quota caveat), it appends to `PROGRESS_v2.md` and the analysis chat folds it in.
 
 4. **`analyze.py`, `judge.py`, `paraphrase.py` are jointly owned** but each edit should be flagged in `PROGRESS_v2.md` so the other chat doesn't redo the same change.
 
@@ -682,7 +682,7 @@ Expected wall time: 10-15 min (slower than v1 because the retry helper backs off
 
 ### Pilot results landed in paper (analysis chat, 2026-05-26 early AM, refreshed 2026-05-26 AM after overnight judge run completed)
 
-The empirical pilot section is now in `paper_drafts/v1/overleaf/paper_long_koyejo.tex` as a new `\section{Empirical pilot}` block between the design sketch and the discussion. The abstract was also updated to reflect a four-contribution structure (was three). Numbers were initially filled at n=119 (judge run in progress). After the overnight run reached the full 144 trials, **all numbers in the paper were patched in-place** to reflect the final results. Qualitative findings held; the salience effect remained the headline; the HIUA:KBV ratio compressed from 5:1 to ~2.75:1 because Llama 4 Scout 17B (n=24, previously omitted at n=1) brought 2 lucid-violation cases into the panel.
+The empirical pilot section is now in `paper_drafts/v1/overleaf/paper_long_v2.tex` as a new `\section{Empirical pilot}` block between the design sketch and the discussion. The abstract was also updated to reflect a four-contribution structure (was three). Numbers were initially filled at n=119 (judge run in progress). After the overnight run reached the full 144 trials, **all numbers in the paper were patched in-place** to reflect the final results. Qualitative findings held; the salience effect remained the headline; the HIUA:KBV ratio compressed from 5:1 to ~2.75:1 because Llama 4 Scout 17B (n=24, previously omitted at n=1) brought 2 lucid-violation cases into the panel.
 
 **Final headline numbers (N=144):**
 
@@ -733,7 +733,7 @@ After this patch, the recovery flow is just: kill the hung process, re-launch th
 
 When the judge re-run lands, the analysis chat will:
 1. Report new pairwise kappa across the three judge pairs in this file
-2. If kappa ≥ 0.4 across all pairs, proceed to fill `empirical_pilot_template.tex` and insert into `paper_long_koyejo.tex`
+2. If kappa ≥ 0.4 across all pairs, proceed to fill `empirical_pilot_template.tex` and insert into `paper_long_v2.tex`
 3. If still < 0.4, escalate to fallback option (single-judge result with caveats)
 
 When the self-host fix lands, the infra chat will:
@@ -893,7 +893,7 @@ The original `_judged.jsonl` is preserved so the analysis chat can compare old-j
 
 User clarified ownership for the rest of this session:
 
-- **Analysis chat owns the rest of the judge pass + G-study + paper writeup** end-to-end. That includes: re-running `judge.py` with the new ensemble (llama-3.1-8b + llama-3.3-70b + llama-4-scout), running `analyze.py --g-study` on the judged JSONL, inspecting the new kappa, filling `empirical_pilot_template.tex`, dropping it into `paper_long_koyejo.tex`, and the final number-verification cross-check.
+- **Analysis chat owns the rest of the judge pass + G-study + paper writeup** end-to-end. That includes: re-running `judge.py` with the new ensemble (llama-3.1-8b + llama-3.3-70b + llama-4-scout), running `analyze.py --g-study` on the judged JSONL, inspecting the new kappa, filling `empirical_pilot_template.tex`, dropping it into `paper_long_v2.tex`, and the final number-verification cross-check.
 - **Infra chat (this one) owns selfhost end-to-end** and nothing else this session. Goal: get all 8 self-hosted models producing clean trial data, hand off the JSONL filename when ready. No judge, no analyze, no paper edits from this chat unless the analysis chat explicitly asks via this file.
 
 If a bug surfaces in a jointly-owned file (judge.py, analyze.py, paraphrase.py, modal_app.py) during selfhost work, this chat fixes it and flags the change here. If a bug surfaces during analysis work that needs an infra fix (e.g., a registry tweak, a Modal secret), the analysis chat flags it here and this chat picks it up after the current selfhost step completes.
