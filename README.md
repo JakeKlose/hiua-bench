@@ -6,32 +6,50 @@ This repo contains the design, code, and pilot data for a benchmark that measure
 
 ## Status
 
-Work in progress. Most recent state is captured in [PROGRESS_v2.md](PROGRESS_v2.md). Headline empirical results from the Groq dev-tier pilot (n=142, 6 models): 0% HIUA-candidate, 10.6% KBV (lucid violation), 100% recall ceiling (a real validity caveat noted in the paper), 20× salience effect.
+v2 pipeline complete; v3 expansion in scope. Most recent inter-chat state is captured in [PROGRESS_v2.md](PROGRESS_v2.md).
+
+**Headline v2 empirical results (n=466 clean trials, 13-model panel):**
+
+- Cell occupancy: 86.1% compliant-recalled, 13.5% violation-recalled (KBV), 0.4% compliant-not-recalled, **0% violation-not-recalled** (HIUA-strict cell empty, a noted validity caveat).
+- HIUA (looser construct, with hallucination-label criterion): 85.3% on the n=34 violation-with-recall subset.
+- KBV: 3.6% on the n=390 recall-only subset. Within-trial HIUA-to-KBV ratio: 23.8:1.
+- Non-monotonic three-level salience effect: 3.9% high < 17.9% mid < 21.7% low.
+- Cross-provider replication on 4 models: 2 of 4 show meaningful provider effects (Llama-3.3-70B at 2.5× and GPT-OSS-120B at 2× when self-hosted vs Groq-served).
+- Judge ensemble (Sonnet × Llama-4-Scout, 2-judge after Llama-3.3-70B RPD failure): Cohen's κ=0.626 (substantial), 91.5% observed agreement.
+- G-theory: Ep²=0.82, Φ=0.75 (both above the 0.70 floor).
+
+Paper draft at [paper_drafts/v1/overleaf/paper_long_v2.tex](paper_drafts/v1/overleaf/paper_long_v2.tex).
 
 ## Layout
 
 ```
 .
-├── README.md                                    ← this file
-├── HANDOFF_v2.md                                ← v1 → v2 transition notes (read this first)
-├── PROGRESS_v2.md                               ← live state, inter-chat coordination log
+├── README.md                                    ← this file (start here)
+├── PROGRESS_v2.md                               ← live state + v3 priorities (read this second)
+├── HANDOFF_v2.md                                ← historical v1→v2 transition notes
 ├── hallucination_to_unauthorized_action_memo.md ← the original research memo
 ├── experiment/
-│   ├── items.json                               ← 24-item factorial benchmark
+│   ├── items.json                               ← original 24 items (high/low salience only)
+│   ├── items_mid.json                           ← 12 mid-salience items added in v2
+│   ├── items_36.json                            ← merged 36-item bank (use this for analysis)
 │   ├── modal_app.py                             ← orchestrator, trial dispatch, scoring
-│   ├── selfhost_serve.py                        ← vLLM-on-Modal per-model serving (v3)
+│   ├── selfhost_serve.py                        ← vLLM-on-Modal per-model serving
 │   ├── selfhost_v1_broken.py.archive            ← preserved-for-reference v1 selfhost
-│   ├── judge.py                                 ← 3-judge hallucination-type labeling
+│   ├── judge.py                                 ← hallucination-type labeling (4 ensemble flags)
 │   ├── analyze.py                               ← G-Theory analysis (basic 2x2 + --g-study)
 │   ├── rescore.py                               ← pure-local re-scorer for parser updates
 │   ├── paraphrase.py                            ← item paraphrase generator
 │   ├── inspect_trials.py                        ← qualitative trial inspector
-│   └── run_*.jsonl                              ← trial data (Groq pilot + partial selfhost)
+│   ├── run_20260528_combined_all.jsonl                       ← unified 468-trial pre-judge
+│   ├── run_20260528_combined_all_judged_2judge.jsonl         ← ★ paper numbers source
+│   └── run_*.jsonl                              ← other intermediate trial-data snapshots
 ├── paper_drafts/v1/overleaf/
-│   ├── paper_long.tex                           ← CS321M term paper (original draft)
-│   ├── paper_long_v2.tex                        ← submission version (revised style)
+│   ├── paper_long.tex                           ← original v1 draft
+│   ├── paper_long_v2.tex                        ← v2 draft (current submission target)
 │   ├── paper_workshop.tex                       ← workshop cut
 │   ├── empirical_pilot_template.tex             ← slot-fill template for results section
+│   ├── pilot_v2_FILLED.tex                      ← reference: filled-in v2 §5 + App. B
+│   ├── main_v2.tex                              ← updated main.tex with integrated v2 sections
 │   └── references.bib                           ← 40 verified citations
 ├── agents/                                      ← autonomous subagent specs used to draft v1
 └── skills/                                      ← Anthropic Skills built for this project

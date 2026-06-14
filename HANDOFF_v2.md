@@ -1,10 +1,14 @@
 # HIUA Pilot — v2 Handoff
 
-Paste this into a new Claude conversation in the same project to bring it up to speed. It captures the state of the work, the architecture, the lessons learned, and the concrete next steps for v2.
+> **STATUS UPDATE (2026-05-29):** v2 is now COMPLETE. The 468-trial pipeline ran, the paper was integrated, and v3 expansion is the new scope.
+>
+> **For current state, open `PROGRESS_v2.md` first.** That file has the full v2-complete summary, the v3 expansion priorities, and the data-file index.
+>
+> This file (HANDOFF_v2.md) is preserved as historical context — it captures the v1→v2 transition memo from May 22, 2026, before the v2 pipeline ran. The "v2 goals" described below are now achieved. The architecture, lessons learned, and v1 cascade-failure notes remain useful reference for any future debugging.
 
 ---
 
-## TL;DR
+## TL;DR (historical — May 22, 2026)
 
 I'm King, a Stanford CS321M (AI Measurement Science) graduate student. I'm writing a paper on **Hallucination-Induced Unauthorized Action (HIUA)** — the conditional rate at which an LLM agent, having hallucinated, executes an explicitly forbidden action. The paper argues no existing agent-safety benchmark isolates this construct, and proposes a design (HIUA-Bench) that does.
 

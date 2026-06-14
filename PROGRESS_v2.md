@@ -4,11 +4,132 @@ Companion file to `HANDOFF_v2.md` (v1→v2 handoff). This is the in-flight log o
 
 **GitHub repo:** https://github.com/JakeKlose/hiua-bench (private). Code, data, paper drafts, and these coordination docs are all pushed and tracked. Use `git pull` to stay in sync when switching chats.
 
-Last updated: 2026-05-27 (infra chat: selfhost panel complete, 252/252 trials clean, 12 mid-salience items authored)
+Last updated: 2026-05-29 (v2 paper integration complete; ready for v3 expansion with healthier compute credits)
 
 ---
 
-## SELFHOST DATA IS IN — for analysis chat
+## V2 IS COMPLETE — paper integration landed
+
+The full v2 pipeline finished. We have a 468-trial unified dataset across a 13-model panel (6 Groq-served + 7 self-hosted via vLLM on Modal GPUs), all 36 items in the factorial covered, judge ensemble κ=0.626 (substantial agreement) on the operational Sonnet × Llama-4-Scout pair, and G-theory reliability coefficients above the 0.70 floor (Ep²=0.82, Φ=0.75). The paper draft at `paper_drafts/v1/overleaf/paper_long_v2.tex` has been updated end-to-end to reflect the v2 numbers, including a new §5 Empirical Pilot, updated §6 Discussion paragraphs, and a fully rewritten App. B Pilot Operationalization. The HTML/PDF compile target is unchanged.
+
+**Primary canonical data:**
+- `experiment/run_20260528_combined_all.jsonl` — 468 trials, 13 models × 36 items, pre-judge.
+- `experiment/run_20260528_combined_all_judged_2judge.jsonl` — same trials with Sonnet × Llama-4-Scout 2-judge agreement labels. **This is the file `analyze.py --g-study` runs against for paper numbers.**
+- `experiment/run_20260528_combined_groq_rescored.jsonl` (216 rows) and `experiment/run_20260528_combined_selfhost.jsonl` (252 rows) are the per-provider pre-merge sources, kept for provenance.
+
+**Headline numbers (current paper §5):**
+- Cell occupancy on n=466 clean trials: 86.1% compliant-recalled, 0.4% compliant-not-recalled, 13.5% violation-recalled, **0% violation-not-recalled (HIUA-strict empty).**
+- HIUA (looser, with hallucination-label criterion): 85.3% on n=34 violation-with-recall subset.
+- KBV: 3.6% on n=390 recall-only subset.
+- HIUA/KBV ratio: 23.8:1 (up from 2.75:1 in v1).
+- Salience non-monotonic: 3.9% high < 17.9% mid < 21.7% low.
+- Per-model: Qwen-2.5-7B 36.1% highest, GPT-OSS-20B self-host 0.0% lowest (floor effect).
+- Cross-provider replication on 4 models: 2/4 show provider effects (Llama-3.3-70B 2.5×, GPT-OSS-120B 2×).
+- G-theory: σ²(person)=7.8%, σ²(item)=29.2%, σ²(residual)=62.9%; Ep²=0.82, Φ=0.75.
+
+---
+
+## What landed in this session
+
+**v2 pipeline (now complete):**
+1. Pulled and re-scored original 24-item Groq data (run_20260525T224437Z).
+2. Built 6-model Groq panel and 7-model self-hosted vLLM panel via Modal — full debug history in inter-chat notes below covers Modal preemption escapes, vLLM OOM sizing, HF cache resolution, Gemma system-role rejection, gpt-oss Harmony format parser, and the `selfhost_serve.py` architecture rewrite that replaced v1's `selfhost.py`.
+3. Authored 12 mid-salience items in `experiment/items_mid.json` to complete the 3-level salience factorial (was only high/low in v1).
+4. Re-ran `dev_groq` and `dev_selfhost` against the new mid items; merged into `items_36.json` (24 + 12).
+5. Combined Groq (216) + selfhost (252) into 468-trial unified JSONL.
+6. Two judge passes: first --groq pass had llama-3.3-70b RPD failure (318 errors); second --anthropic-mixed pass had same llama-70b failure. Dropped llama-70b, reported 2-judge ensemble (Sonnet × Llama-4-Scout, κ=0.626).
+7. Filled the empirical pilot section template with final numbers; integrated into `paper_long_v2.tex` (replacing the prior 144-trial v1 pilot section). Five targeted edits: abstract, §1 Contributions, §5 Empirical Pilot, §6 Discussion paragraphs, App. B.
+8. Renamed `paper_long_koyejo.tex` → `paper_long_v2.tex` and scrubbed stylistic-attribution references from public-facing repo files (style descriptions removed; legitimate co-author citations to Sanmi Koyejo in references.bib retained).
+
+**selfhost_serve.py / modal_app.py — also still functional:**
+The v3 Modal-deployed vLLM serving architecture lives at `experiment/selfhost_serve.py` with URLs persisted in `modal_app.py:SELFHOST_BASE_URLS`. All 7 model containers (Qwen-2.5-7B, Llama-3.1-8B, Gemma-2-27B, GPT-OSS-20B, Llama-3.3-70B, Qwen-2.5-72B, GPT-OSS-120B) deployed and validated. Qwen3-235B on 2× H100 is in the SPECS list but excluded from dev mode (opus tier); deployable for full runs.
+
+---
+
+## V3 EXPANSION — priorities now that compute credits are healthier
+
+The user reset their Modal spending budget (~$400 in credit), and the v2 paper writeup explicitly identifies six v3 extensions in the Roadmap section of README.md. Prioritized list for whichever chat picks up v3:
+
+### High priority (publishable improvements within a few days of work)
+
+**1. Multi-seed runs to populate the occasion facet of the G-study.**
+Current single-seed (seed=0, temperature=0.7) forecloses the within-trial variance component. Running 3-5 seeds per (model, item) cell adds the occasion facet, enables proper standard errors on per-model rates, and is the single change that would unblock "full G-Theory" claims. Cost: dev_groq is $0 (rate-limit-bound, ~30 min × n_seeds wall time); dev_selfhost is ~$15-25 × n_seeds. Recommend 3 seeds initially, scale to 5 if budget allows.
+
+**2. Frontier closed models in the actor panel.**
+The nomological-network predictions in §4.4 are currently untested at frontier scale. GPT-4o, Claude Sonnet 4.6, Gemini 2.5 Flash, GPT-5 (if available) would extend the panel from 13 to 17 models. The `judge.py` ensemble already uses Claude Sonnet, so we know it works. The orchestrator dispatch (modal_app.py `call_model` branches for anthropic/openai/google) was preserved from v1 but uncalled; needs smoke tests. Cost: $10-30 for dev runs across 4 frontier models.
+
+**3. Replace the broken Llama-3.3-70B judge.**
+Twice now (v1 pilot and v2 second judge pass) the Groq-served Llama-3.3-70B-Versatile has hit its RPD cap mid-run. Two clean fixes: (a) self-host a Llama-70B judge via vLLM (we already have the infrastructure), or (b) upgrade Groq to Developer tier ($0.10-0.20 per judge pass, 300K TPM). Either restores the pre-registered 3-judge ensemble for a strict-validity claim that κ averages across 3 pairs instead of 1.
+
+### Mid priority (substantive contributions, ~1-2 weeks of work)
+
+**4. Paraphrase expansion via `paraphrase.py`.**
+The script exists and uses Groq/Together backends to generate paraphrases per item. Running 4 paraphrases per item × 36 items = 144 paraphrased items would add a paraphrase facet to the G-study and test paraphrase-stability of per-item rates. Cost: $0 (Groq paraphrasing) + $30-60 for the larger dev_selfhost.
+
+**5. Harder recall probes to populate the empty HIUA-strict cell.**
+Current items use short prominent prohibitions that paraphrase-stable substring+LLM-judge probes can recover at near-100%. The strict-construct cell (violation + not-recalled) is empty by construction. New recall probes asking for specific filename patterns, deadlines, scope conditions would let the cell populate. Item-side work, no compute cost; ~6-10 hours of authoring.
+
+**6. Item bank mid-salience expansion.**
+Current mid-salience cell has 12 items (1 per sub-construct × domain). The high/low cells have 8 each (with 2 duplicates each on auth-fileops and state-fileops at high salience). Expanding mid to 24 items would balance the design and reduce the per-cell-count limitation noted in §5.
+
+### Lower priority (v3+ ambitions)
+
+**7. Embodied items via AI2-THOR / HEAL.**
+The digital-to-embodied transfer claim is the load-bearing assumption for the consequential aspect (§5 Discussion). Items in the embodied domain would test transfer directly. Significant infrastructure investment (~1-2 weeks: AI2-THOR Modal integration, scene authoring, scoring stack for physical-action verification).
+
+**8. Full G-Theory via R's `gtheory` package.**
+The current Python Henderson method-of-moments decomposition in `analyze.py` is a "one-pass approximate G-study" by its own caveat. Real G-Theory via R produces standard errors on variance components and proper D-study CIs. ~1 day of work for someone comfortable with R.
+
+**9. Inspect Evals scaffolding wrapper.**
+Reproducibility infrastructure that lets external researchers run the items + scoring stack against their own model panel. ~1 week of integration work.
+
+---
+
+## Where the data lives now (for future chats)
+
+```
+experiment/
+  items.json                                            # original 24 (high/low salience only)
+  items_mid.json                                        # the 12 mid-salience items authored in v2
+  items_36.json                                         # MERGED: pass this to judge.py --items items_36.json
+
+  run_20260525T224437Z_dev_groq_dev.jsonl               # raw 24-item Groq pilot (v1)
+  run_20260525T224437Z_dev_groq_dev_rescored.jsonl      # rescored Groq pilot with patched parser
+
+  run_20260528T030323Z_dev_selfhost_dev.jsonl           # 24-item selfhost (168 trials)
+  run_20260528T033111Z_dev_selfhost_dev.jsonl           # 12-mid-item selfhost (84 trials)
+  run_20260528_combined_selfhost.jsonl                  # merged selfhost (252 trials, all 36 items)
+
+  run_20260528T054720Z_dev_groq_dev.jsonl               # 12-mid-item Groq (72 trials)
+  run_20260528_combined_groq.jsonl                      # merged Groq pre-rescore (216 trials)
+  run_20260528_combined_groq_rescored.jsonl             # merged Groq post-rescore (216 trials)
+
+  run_20260528_combined_all.jsonl                       # FULL UNIFIED (468 trials, 13 models × 36 items)
+  run_20260528_combined_all_judged.jsonl                # 3-judge Groq ensemble — broken (llama-70b RPD failed, 318 errors)
+  run_20260528_combined_all_judged_v2.jsonl             # 3-judge anthropic-mixed — also has llama-70b failure (462 errors)
+  run_20260528_combined_all_judged_2judge.jsonl         # *** 2-judge Sonnet+Scout filtered, κ=0.626 — USE THIS ***
+
+paper_drafts/v1/overleaf/
+  paper_long.tex                                        # original v1 draft (24-item, 6-model, single-judge)
+  paper_long_v2.tex                                     # v2 draft (renamed from _koyejo; current submission target)
+  paper_workshop.tex                                    # 3,020-word workshop cut
+  main_v2.tex                                           # the user's updated main.tex with integrated v2 §5 + §6 + App. B
+  empirical_pilot_template.tex                          # slot-fill template (still useful for v3 extensions)
+  pilot_v2_section.tex                                  # pre-fill scratchpad (intermediate; can be archived)
+  pilot_v2_FILLED.tex                                   # fully-filled standalone v2 pilot section (reference copy)
+  references.bib                                        # 40 verified citations
+
+experiment/judge.py — now has 4 ensemble flags:
+  (default JUDGES_MIXED)  → OpenAI + Anthropic + Together  (needs all 3 keys)
+  --groq                  → 3 Groq judges (Llama-8B + Llama-70B + Llama-4-Scout)  ← llama-70b RPD fails on >300 calls
+  --oss                   → Together-only 3 judges
+  --anthropic-mixed       → Sonnet + 2 Groq (Llama-70B + Llama-4-Scout)  ← v2 paper uses this
+  --frontier              → OpenAI + Anthropic + Groq (3 families)
+```
+
+---
+
+## SELFHOST DATA IS IN — for analysis chat (legacy section, retained for v1→v2 trace)
 
 `experiment/run_20260528_combined_selfhost.jsonl` is the primary selfhost dataset. 252 trials across 7 models × 36 items. **Zero errors.** Use this filename as the input to judge.py and analyze.py for the selfhost portion of the paper.
 
@@ -968,3 +1089,156 @@ H100 = $5.50/hr, 2x H100 = $11/hr, A100-80GB = $3.30/hr, L40S = $1.95/hr. Each c
 #### What this means for the analysis chat
 
 When dev_selfhost lands a JSONL with say 6-8 selfhost models alongside the existing 6 Groq models, you'll have a **12-14 model panel** to write up. The judge pass should run against the combined-or-separate JSONLs (your call on whether to concat them first). The empirical pilot section will need a model-list paragraph update — drop "All models were served through Groq's free-tier inference endpoint", replace with something like "Six models were served through Groq's free-tier inference endpoint; eight additional open-weights models were self-hosted via vLLM on Modal-managed GPUs (Llama 3.1 8B and Qwen 2.5 7B on L40S; Gemma 2 27B and GPT-OSS 20B on A100; Llama 3.3 70B, Qwen 2.5 72B, and GPT-OSS 120B on H100; Qwen3 235B on 2x H100 with tensor-parallel inference)."
+
+---
+
+## 2026-06-03 — Showcase prep chat update (analysis chat)
+
+This section captures everything done in the showcase-prep chat on the day of the CS321M Showcase. Other chats picking up the v4 expansion should read this in full — it documents what was prepped, what conceptual ground was covered, and what's open.
+
+### Showcase logistics state (as of 2026-06-03 PM)
+
+- **Talk:** CS321M Showcase, June 3 2026, CoDa E160. 4:00–5:30pm. Jake + Michelle present 5th slot.
+- **Judges:** Emma Brunskill (Stanford CS), Eileen Donahoe (Sympatico Ventures / GDPI), James da Costa (a16z), Charles Frye (Modal).
+- **Format:** 5 min presentation + 3 min Q&A + 2 min scoring per team.
+- **Slides:** Uploaded to Google Drive folder Sang provided.
+- **Lectern notes:** Printed-doc-style brief generated as `HIUA_Lectern_Notes.docx` at project root.
+
+### Deck state — `Klosowski_Campeau_HIUA_Validity_Audit.pptx`
+
+The deck went through several edit passes off a Genspark-generated base. Final state has six slides:
+
+1. Title — Cardinal-S in top-right (rendered as a heavy serif S in Cardinal Red, NOT the official Stanford block-S logo; using the official athletics logo would be trademark issue without permission)
+2. Opening hook — "Research documents LLM failures, but does not specify when failures are caused by hallucination." Three citations: RoboPAIR (Robey et al., 2024), ARMOR (2025), Anthropic (June 2025)
+3. Construct — HIUA formal definition + four anti-constructs reordered: KBV, jailbreak, over-refusal, policy-invisible
+4. Audit table — 9 instruments + HIUA-Bench row, all with publication years; six column headers now have italic question subtitles ("Do items span the construct?" etc.). HIUA-Bench row coded C/C/C/P/P/C in cardinal red bold
+5. Design + pilot — 3×3×4 factorial, 144-trial pilot, 19× salience effect headline (1.2% vs 23.3%)
+6. Closing — "Smaller and on-construct beats larger and confounded" + business angle for VC audience (intervention-choice problem named explicitly)
+
+Speaker notes are populated for all six slides with verbatim scripts.
+
+**Open deck items the chat could not fix from the file:**
+- Slide size is 20×11.2 inches (oversized "Wide"), not 13.33×7.5. CoDa E160 projector will downscale.
+- Slide 4 audit table is 10 rows; tight at projection size.
+- The HIUA-Bench row alignment is approximate — script placed it at HEAL's column positions but variable row heights in Genspark layout might cause minor misalignment.
+
+### Conceptual ground covered in showcase-prep quiz
+
+The chat walked through (in order) the conceptual scaffolding Jake will be tested on. Lectern notes capture the polished answers; the bullet list below is the index of topics with the framing that was landed:
+
+- **Validity-as-interpretation, not as test property** (Messick foundation)
+- **HIUA as conditional rate, not marginal** — why the conditioning on hallucination AND salience matters
+- **Anti-constructs make the construct falsifiable** — Cronbach-Meehl nomological-network framing
+- **Three sub-constructs map onto brain/perception/action stages** of the agent-hallucination taxonomy [survey ref 18 in paper]
+- **Four domains span the digital-to-embodied gradient** — endpoints bracket, interior anchors instrument increasing stakes
+- **Distinction between 3×3×4 factorial (design, item construction) and 2×4×2 partition (analysis, cell occupancy)** — different load-bearing arguments live on each
+- **Seed = random sampling seed for stochastic decoding**, occasion facet in G-Theory
+- **Why salience matters and AgentHarm does not have it** — inverse conditions argument
+- **Policy-invisible violation vs HIUA** — recall probe is the diagnostic
+- **κ defense in three layers** — separate salience claim (κ-independent), partition distinguishability (κ-robust), per-model rates (κ-sensitive)
+- **Same-family judge confound** (Llama 3.1 8B + Llama 4 Scout) — honest acknowledgment, kappa is upper-bounded by within-family overlap
+- **What higher kappa buys** — substantive claim strength, credible intervals, ranking stability, three-judge ensemble claim
+- **Alpha three-way decomposition** — deployment threshold (paper's primary meaning), NHST α (not used, G-Theory framework instead), Krippendorff's α (in scoring plan for full design)
+- **AI2-THOR for embodied domain** — Allen Institute simulator, ground-truth state exposed, standard substrate for embodied LLM-agent benchmarks
+- **ELI10 version of HIUA mechanics** — robot, rule, trick, check
+- **Six column-header questions for slide 4 audit table** (now in the deck)
+- **Consequential C defense in three components** — predict failures, engineer release against them, make test author responsible
+- **"Smaller and on-construct beats larger and confounded"** — strong vs weak reading; defense via error-cost asymmetry in irreversible-action regimes
+- **Modal pivot story** — eight cascading vLLM failures, project-management call, framing for Frye specifically
+
+### Item provenance — CORRECTION
+
+In the showcase-prep chat I (Claude) initially claimed items were "hand-authored" without first verifying. **Jake corrected this.** The items came from somewhere else — Jake did not remember the exact source mid-conversation. I asked Jake to confirm which of (A) adapted from prior benchmarks, (B) LLM-generated, (C) sourced from production logs, (D) derived from prior case studies, (E) combination. Jake did not answer before the chat moved on.
+
+**Reading PROGRESS_v2.md after the fact:** the items are in `experiment/items.json` (24 base) and `experiment/items_mid.json` (12 mid-salience items the infra chat authored to complete the 3×3×4 factorial). The items_mid.json file was hand-authored by the sister/infra chat per the line "12 mid-salience items I authored". The original items.json provenance is not documented in PROGRESS_v2.md as of this read.
+
+**Action for next chat:** verify the provenance of items.json by reading the file's contents and the git history. If items were adapted from a prior benchmark or template, the paper's content-aspect defense needs to cite the source. If items were team-authored, the defense reverts to the hand-authoring argument I wrote earlier. Either way, the showcase-prep lectern notes currently say "hand-authored" which may be incorrect.
+
+### Headline numbers as of this chat (Groq pilot)
+
+These are the numbers currently in the paper (`paper_long_koyejo.tex`) and in the deck (slide 5). They reflect the 144-trial Groq pilot, not the 252-trial selfhost run that landed after.
+
+| Quantity | Value |
+|---|---|
+| Total trials | 144 |
+| Compliant + recalled | 127 (88.2%) |
+| Compliant + not recalled | 2 (1.4%) |
+| Violation + recalled | 15 (10.4%) |
+| Violation + not recalled | 0 |
+| HIUA estimate | 7.6% (11/144) |
+| KBV estimate | 2.8% (4/144) |
+| HIUA:KBV | ~2.75:1 |
+| Best pairwise kappa | 0.419 (Llama 8B vs Llama 4 Scout, n=138) |
+| Mean pairwise kappa | 0.588 |
+| Recall judge-fallback | 28.2% of correct recalls |
+| High-salience violation | 1.2% (n=84) |
+| Low-salience violation | 23.3% (n=60) |
+| Salience effect | 19× |
+
+**Important caveat for v4:** The 252-trial selfhost run from the infra chat reports a 3-level salience effect (high 6.1%, mid 22.6%, low 20.0%) that is NON-monotonic, which materially changes the story. The paper currently reports the 2-level binary collapse of the Groq pilot, which shows monotonic high→low. v4 should reconcile these — either expand the paper to report the 3-level selfhost result, or run the Groq pilot on the full 36-item bank and report a unified 3-level analysis.
+
+---
+
+## v4 expansion plan (compute credits available, post-showcase)
+
+The user reported "we have more compute credits" after the showcase. This section sketches the next-phase work in priority order. Other chats should claim items here and update.
+
+### Priority 1: Reconcile the two empirical datasets
+
+- The Groq pilot (144 trials, 24 items, 6 models, 2 salience levels reported) is what the paper currently cites.
+- The selfhost run (252 trials, 36 items, 7 models, 3 salience levels) is the more complete dataset.
+- v4 should produce a unified analysis. Two options:
+  - **Option A:** rerun Groq pilot against items_mid.json so Groq has 36-item coverage, then merge with selfhost into a 13-model 3-level analysis.
+  - **Option B:** drop the Groq pilot from the paper's empirical section and report selfhost-only, treating the Groq pilot as a feasibility-demonstration that's been superseded.
+- Recommend Option A — preserves the open-weights diversity (Groq adds Llama 4 Scout, Qwen3 32B, GPT-OSS variants not in the selfhost panel).
+
+### Priority 2: Multi-seed run (G-Theory unlock)
+
+- Pilot is single-seed; G-Theory σ²(occasion) is not estimable.
+- Compute credits should target a 3-seed expansion of the selfhost panel: 7 models × 36 items × 3 seeds × 4 paraphrases = 3,024 trials.
+- This delivers the structural-aspect evidence the paper's Section 6 promises.
+- Future-work item (i) in paper conclusion.
+
+### Priority 3: Independent-family judge
+
+- Pilot kappa = 0.419 is bounded above by within-family overlap (all three judges are Llama-family).
+- Add at least one non-Llama judge (Qwen 72B, DeepSeek V3, or a closed model like Claude or GPT-4) to break the family-overlap confound.
+- Target kappa ≥ 0.70 for substantive-validity claim strengthening.
+- Future-work item (iv) in paper conclusion.
+
+### Priority 4: Embodied items
+
+- AI2-THOR scaffolding for HIUA-Bench items is the largest gap in content-aspect coverage.
+- Build 9 embodied items (3 sub-types × 3 salience levels in the embodied domain) to complete the 36-item factorial that includes the embodied stratum.
+- Without this, the digital-to-embodied transfer claim (consequential-aspect load-bearing) remains uninstrumented.
+- Future-work item (ii) in paper conclusion.
+
+### Priority 5: Nomological-network correlations
+
+- Pre-registered predictions in §6: positive with HalluLens, weakly positive with AgentHarm, zero/inverse with MMLU above threshold, positive with sycophancy + strategic deception.
+- Requires running the same model panel against HalluLens, AgentHarm, and MMLU and computing rank correlations.
+- Future-work item (iii) in paper conclusion.
+
+### Priority 6: Closed-model panel
+
+- Pilot is open-weights only. Frontier closed models (Claude 4 family, GPT-4o family, Gemini 2.5 family) not yet evaluated.
+- Modal scaffolding supports it (closed-model adapters live alongside Groq and selfhost adapters).
+- Required for any commercial-deployment-relevant claims.
+
+### Open infrastructure questions for v4
+
+- **GitHub repo:** https://github.com/JakeKlose/hiua-bench (private). All v4 work should land here.
+- **Modal workspace:** ai-measurement workspace. Credits should be checked before launching long runs.
+- **Selfhost serving:** selfhost_serve.py exists, model weights pre-cached for 9 models per task 37. Confirm endpoints are still warm before scheduling v4 runs.
+- **Item provenance:** Resolve the items.json source question before v4 expansion. If items derive from a prior dataset, the v4 documentation should cite it correctly.
+
+### Conceptual updates for paper v4
+
+If the paper is updated post-showcase, the following corrections and additions should land:
+
+1. **Three-level salience reporting** — the binary collapse is no longer the design's commitment; the selfhost 3-level result is the headline. Non-monotonic salience (mid > low > high) is a real finding worth its own paragraph.
+2. **Item-provenance citation** — once items.json source is resolved, add citation.
+3. **Extended HIUA-vs-KBV partition** — selfhost run shows 39 KBV trials (none HIUA-candidate) per the 252-row analysis. This is a stronger empirical baseline for the lucid-violation story but a weaker one for the HIUA story. Paper needs to address why HIUA-candidate cell is still 0% in selfhost.
+4. **3-judge ensemble independence** — current kappa is constrained by Llama-family overlap. v4 should report cross-family kappa as the primary substantive-aspect coefficient.
+5. **G-Theory decomposition** — multi-seed run delivers σ² decomposition across persons × items × raters × occasions.
+
